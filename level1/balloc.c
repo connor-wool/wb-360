@@ -106,6 +106,11 @@ int balloc(int dev){
 char *disk = "mydisk";
 
 main(int argc, char *argv[]){
+	
+        printf("=========================================\n");
+        printf("ALLOCATE BLOCKS\n");
+        printf("=========================================\n");
+
 	//establish local variables and buffer
 	int i, block;
 	char buf[BLKSIZE];
