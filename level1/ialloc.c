@@ -124,7 +124,7 @@ main(int argc, char *argv[ ])
 	get_block(fd, 1, buf);
 	sp = (SUPER *)buf;
 
-	//print information about superblock
+	//print information about current fs state
 	ninodes = sp->s_inodes_count;
 	nblocks = sp->s_blocks_count;
 	nfreeInodes = sp->s_free_inodes_count;
