@@ -246,6 +246,7 @@ int main(int argc, char *argv[]){
 	printf("num blocks in root inode: %d\n", num_blocks);
 	*/
 
+
 	char *pathbuf[100] = {0};
 	int n = tokenize(path, pathbuf);
 	printf("n is %d\n", n);
@@ -255,6 +256,17 @@ int main(int argc, char *argv[]){
 		printf("path: %s\n", pathbuf[i]);
 		i++;
 	}
+	
+	//print superblocks info here:
+	repeat_char('=', 40, 1);
+	printf("   SUPERBLOCK INFO:\n");
+	repeat_char('=', 40, 1);
+	printf("s_inodes_count = %d\n", sp->s_inodes_count);
+	printf("s_blocks_count = %d\n", sp->s_blocks_count);
+	printf("s_inodes_per_group = %d\n", sp->s_inodes_per_group);
+	printf("s_free_inodes_count = %d\n", sp->s_free_inodes_count);
+	printf("s_free_blocks_count = %d\n", sp->s_free_blocks_count);
+
 
 	search_path(n, pathbuf);
 
