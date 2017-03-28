@@ -1,0 +1,4 @@
+#! /bin/bash
+
+gcc -m32 -g showblock.c
+

@@ -20,6 +20,7 @@ PLAN:
 //print single indirect
 int print_si(int blocknum){
 	printf("printing single indirect blocks on block %d\n", blocknum);
+	repeat_char('=', 40, 1);
 	char buf[BLKSIZE];
 	get_block(fd, blocknum, buf);
 	int *intp = (int*)buf;
@@ -27,11 +28,14 @@ int print_si(int blocknum){
 		printf("%d ", *intp);
 		intp++;
 	}
+	repeat_char('=', 40, 1);
 }
 
 //print double indirect block
 int print_di(int blocknum){
+	repeat_char('=', 40, 1);
 	printf("printing double indirect blocks on block %d\n", blocknum);
+	repeat_char('=', 40, 1);
 	char buf[BLKSIZE];
 	get_block(fd, blocknum, buf);
 	int *intp = (int*)buf;
@@ -39,6 +43,7 @@ int print_di(int blocknum){
 		print_si(*intp);
 		intp++;
 	}
+	printf("\n");
 }
 
 //print triple indirect block
@@ -73,10 +78,12 @@ int print_inode_blocks(int ino){
 
 	get_block(fd, blk, buf);
 	ip = (INODE*)buf + offset;
-	
+
+	printf("direct blocks: ");	
 	for(i = 0; i < 12; i++){
-		printf("direct block: %d\n", ip->i_block[i]);
+		printf("%d ", ip->i_block[i]);
 	}
+	printf("\n");
 	
 	//print single indirect blocks
 	if(ip->i_block[12] > 0)
@@ -109,7 +116,8 @@ int tokenize(char *source, char *result[]){
 
 //get inode number of a filename
 int search (INODE *inode, char *name){
-	printf("searching for %s\n", name);
+	repeat_char('=', 40, 1);
+	printf("!!! ->searching for %s\n", name);
 	//check how many blocks inode has
 	//read each block in sequence looking for name
 	int nblocks, i, j;
@@ -117,16 +125,20 @@ int search (INODE *inode, char *name){
 	
 	nblocks = inode->i_blocks;
 	for(i = 0; i < nblocks; i++){
-		printf("getting block %d of %d\n", i, nblocks);
+		printf("getting data block %d of %d\n", i+1, nblocks);
 		get_block(fd, inode->i_block[i], buf);
 		char *cp = buf;
 		dp = (DIR*)cp;
 		while(cp < &buf[BLKSIZE-1]){
 			printf("looking at %s\n", dp->name);
 			if(strcmp(name, dp->name) == 0){
-				printf("found %s\n", name);
+				printf("found %s, is ino# %d\n", dp->name, dp->inode);
+				repeat_char('=', 40, 1);
 				return dp->inode;
 			}
+			if(dp->rec_len == 0)
+				break;
+
 			cp += dp->rec_len;
 			dp = (DIR*)cp;
 		}
@@ -134,6 +146,7 @@ int search (INODE *inode, char *name){
 		getchar();
 	}
 	printf("not found, returning 0!\n");
+	repeat_char('=', 40, 1);
 	return 0;
 }
 
@@ -217,6 +230,8 @@ int main(int argc, char *argv[]){
 	printf("verified: ext2 file system on disk.\n");
 	
 	//read GD and find where inodes begin
+	//this was made redundant by the 'get-inode' function
+	/*
 	get_block(fd, 2, buf);
 	gp = (GD*)buf;
 	iblock = gp->bg_inode_table;
@@ -229,7 +244,8 @@ int main(int argc, char *argv[]){
 	//verify some info about root inode
 	num_blocks = ip->i_blocks;
 	printf("num blocks in root inode: %d\n", num_blocks);
-	
+	*/
+
 	char *pathbuf[100] = {0};
 	int n = tokenize(path, pathbuf);
 	printf("n is %d\n", n);
