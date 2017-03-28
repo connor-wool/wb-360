@@ -17,6 +17,170 @@ PLAN:
 
 #include "type.h"
 
+//print single indirect
+int print_si(int blocknum){
+	printf("printing single indirect blocks on block %d\n", blocknum);
+	char buf[BLKSIZE];
+	get_block(fd, blocknum, buf);
+	int *intp = (int*)buf;
+	while(*intp > 0 && intp < &buf[BLKSIZE - 1]){
+		printf("%d ", *intp);
+		intp++;
+	}
+}
+
+//print double indirect block
+int print_di(int blocknum){
+	printf("printing double indirect blocks on block %d\n", blocknum);
+	char buf[BLKSIZE];
+	get_block(fd, blocknum, buf);
+	int *intp = (int*)buf;
+	while(*intp > 0 && intp < &buf[BLKSIZE - 1]){
+		print_si(*intp);
+		intp++;
+	}
+}
+
+//print triple indirect block
+int print_ti(int blocknum){
+	printf("printing triple indirect blocks on block %d\n", blocknum);
+	char buf[BLKSIZE];
+	get_block(fd, blocknum, buf);
+	int *intp = (int*)buf;
+	while(*intp > 0 && intp < &buf[BLKSIZE - 1]){
+		print_di(*intp);
+		intp++;
+	}
+}
+
+//print all blocks associated with an inode number
+int print_inode_blocks(int ino){
+	printf("printing disk blocks for inode #%d\n", ino);
+	//get group descriptor block to find inode table
+	//run mailmans to find inode
+	//read inode into buf
+	//read values from inode
+
+	int inode_start = 0;
+	int blk, offset, i;
+	char buf[BLKSIZE];
+	get_block(fd, 2, buf);
+	gp = (GD*)buf;
+	inode_start = gp->bg_inode_table;
+	
+	blk = ((ino-1)/8) + inode_start;
+	offset = (ino-1) % 8;
+
+	get_block(fd, blk, buf);
+	ip = (INODE*)buf + offset;
+	
+	for(i = 0; i < 12; i++){
+		printf("direct block: %d\n", ip->i_block[i]);
+	}
+	
+	//print single indirect blocks
+	if(ip->i_block[12] > 0)
+		print_si(ip->i_block[12]);
+
+	//print double indirect blocks
+	if(ip->i_block[13] > 0)
+		print_di(ip->i_block[13]);
+
+	//print triple indirect blocks
+	if(ip->i_block[14] > 0)
+		print_ti(ip->i_block[14]);
+}
+
+int tokenize(char *source, char *result[]){
+	printf("tokenizing string\n");
+	char *sacrifice, *token; 
+	int i;
+
+	sacrifice = make_string(source);
+	i = 0;
+	token = strtok(sacrifice, "/");
+	while (token > 0){
+		result[i] = make_string(token);
+		token = strtok(0, "/");
+		i++;
+	}
+	return i;
+}
+
+//get inode number of a filename
+int search (INODE *inode, char *name){
+	printf("searching for %s\n", name);
+	//check how many blocks inode has
+	//read each block in sequence looking for name
+	int nblocks, i, j;
+	char buf[BLKSIZE];
+	
+	nblocks = inode->i_blocks;
+	for(i = 0; i < nblocks; i++){
+		printf("getting block %d of %d\n", i, nblocks);
+		get_block(fd, inode->i_block[i], buf);
+		char *cp = buf;
+		dp = (DIR*)cp;
+		while(cp < &buf[BLKSIZE-1]){
+			printf("looking at %s\n", dp->name);
+			if(strcmp(name, dp->name) == 0){
+				printf("found %s\n", name);
+				return dp->inode;
+			}
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
+		}
+		printf("push key to continue\n");
+		getchar();
+	}
+	printf("not found, returning 0!\n");
+	return 0;
+}
+
+INODE *getino(int ino){
+	printf("getting inode #%d\n", ino);
+	
+	INODE *result = malloc(sizeof(INODE));
+	char buf[BLKSIZE];
+	int inode_block, blk, offset;
+	
+	get_block(fd, 2, buf);
+	gp = (GD*)buf;
+	inode_block = gp->bg_inode_table;
+	
+	blk = ((ino-1)/8) + inode_block;
+	offset = (ino-1) % 8;
+
+	get_block(fd, blk, buf);
+	*result = *((INODE*)buf + offset);
+	return result;
+}
+
+int search_path(int ninodes, char *pathbuf[]){
+	//establish pointer to root inode
+	//in while loop:
+	//	return if search gives 0
+	//	if at last path location, and found, print
+	//	if more to go, reset pointer and loop
+
+	printf("searching path\n");
+
+	INODE *current;
+	int i, nextinode;
+
+	current = getino(2);
+	
+	for(i = 0; i < ninodes; i++){
+		nextinode = search(current, pathbuf[i]);	
+		
+		if(nextinode == 0)
+			return 0;
+		
+		current = getino(nextinode);
+	}
+	print_inode_blocks(nextinode);
+}
+
 int main(int argc, char *argv[]){
 	char *device, *path;
 	char buf[BLKSIZE];
@@ -64,8 +228,18 @@ int main(int argc, char *argv[]){
 
 	//verify some info about root inode
 	num_blocks = ip->i_blocks;
-	printf("blocks of root inode: %d\n", num_blocks);
+	printf("num blocks in root inode: %d\n", num_blocks);
 	
+	char *pathbuf[100] = {0};
+	int n = tokenize(path, pathbuf);
+	printf("n is %d\n", n);
 	
+	int i = 0;
+	while(pathbuf[i] > 0){
+		printf("path: %s\n", pathbuf[i]);
+		i++;
+	}
+
+	search_path(n, pathbuf);
 
 }
