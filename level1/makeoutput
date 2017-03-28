@@ -1,0 +1,35 @@
+#! /bin/bash
+#creates the output file for lab 6 Pre-lab
+
+touch turnin
+
+mk super
+a.out > turnin
+echo " " >> turnin
+
+mk gd
+a.out >> turnin
+echo " " >> turnin
+
+mk imap
+a.out >> turnin
+echo " " >> turnin
+
+mk ialloc
+a.out >> turnin
+echo " " >> turnin
+
+mk imap
+a.out >> turnin
+echo " " >> turnin
+
+mk bmap
+a.out >> turnin
+echo " " >> turnin
+
+mk balloc
+a.out >> turnin
+echo " " >> turnin
+
+mk bmap
+a.out >> turnin

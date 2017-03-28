@@ -105,6 +105,11 @@ char *disk = "mydisk";
 
 main(int argc, char *argv[ ])
 {
+	printf("=========================================\n");
+	printf("ALLOCATE INODES\n");
+	printf("=========================================\n");
+
+
 	//establish local variables and buffer
 	int i, ino;
 	char buf[BLKSIZE];
