@@ -50,3 +50,11 @@ typedef struct proc{
 	MINODE *cwd;
 	OFT *fd[NFD];
 }PROC;
+
+//global var stuff
+MINODE minode[NMINODE];
+MINODE *root;
+PROC proc[NPROC], *running;
+
+int fd, dev;
+int nblocks, ninodes, bmap, imap, iblock;
