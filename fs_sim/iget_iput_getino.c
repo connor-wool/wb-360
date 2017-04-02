@@ -43,7 +43,7 @@ char* make_string(char *source){
 	return result;
 }
 
-tokenize(char *source, char *result[]){
+int tokenize(char *source, char *result[]){
 	printf("tokenizing string!\n");
 	char *sacrifice, *token;
 	int i;
@@ -69,14 +69,14 @@ MINODE *iget(int dev, int ino){
 		mip = &minode[i];
 		if(mip->dev == dev && mip->ino == ino){
 			mip->refCount++;
-			printf("found [%d %d] as minode[%d] in core\n", dev, ino, i);
+			printf("iget: found [dev=%d ino=%d] as minode[%d] in core\n", dev, ino, i);
 			return mip;
 		}
 	}
 	for(i=0; i < NMINODE; i++){
 		mip = &minode[i];
 		if(mip->refCount == 0){
-			printf("allocating NEW minode[%d] for [%d %d]\n",i,dev,ino);
+			printf("iget: allocating NEW minode[%d] for [dev=%d ino=%d]\n",i,dev,ino);
 			mip->refCount = 1;
 			mip->dev = dev; mip->ino = ino;
 			mip->dirty = mip->mounted = 0;
@@ -91,7 +91,7 @@ MINODE *iget(int dev, int ino){
 			return mip;
 		}
 	}
-	printf("PANIC: there are no more free minodes\n");
+	printf("iget: PANIC: there are no more free minodes\n");
 	return 0;
 	
 }

@@ -1,0 +1,5 @@
+#! /bin/bash
+
+rm diskimage_copy
+cp diskimage diskimage_copy
+a.out diskimage_copy
