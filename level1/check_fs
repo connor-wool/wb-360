@@ -1,0 +1,5 @@
+        #check_fs
+        sudo mount -o loop diskimage  /mnt
+        ls -l /mnt
+        (cd into /mnt to browse its contents)
+        sudo umount /mnt

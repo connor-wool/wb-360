@@ -1,0 +1,25 @@
+
+DEMO on 4/12
+From assignment prompt: http://www.eecs.wsu.edu/~cs360/lab7.html
+
+
+Demonstrate YOUR level-1 of File System Project, which includes:
+
+1. mount_root:  
+    start your project by mount_root();
+    ls, cd, pwd
+
+2. mkdir-rmdir: 
+     mkdir pathname; 
+     rmdir pathname; 
+     creat filename;
+
+3. link-unlink: 
+     link oldFilename newFilename
+     unlink filename
+
+4. symlink-readlink: 
+     symlink oldname newname; 
+     readlink
+     (modify YOUR ls code to display symlink file as:  name -> linkName
+

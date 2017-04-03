@@ -124,7 +124,7 @@ int search (INODE *inode, char *name){
 	char buf[BLKSIZE];
 	
 	nblocks = inode->i_blocks;
-	for(i = 0; i < nblocks; i++){
+	for(i = 0; i <= nblocks; i++){
 		printf("getting data block %d of %d\n", i+1, nblocks);
 		get_block(fd, inode->i_block[i], buf);
 		char *cp = buf;
@@ -181,7 +181,7 @@ int search_path(int ninodes, char *pathbuf[]){
 	INODE *current;
 	int i, nextinode;
 
-	current = getino(2);
+	current = getino(2); 
 	
 	for(i = 0; i < ninodes; i++){
 		nextinode = search(current, pathbuf[i]);	
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]){
 	
 	//print superblocks info here:
 	repeat_char('=', 40, 1);
-	printf("SUPERBLOCK INFO:\n");
+	printf("   SUPERBLOCK INFO:\n");
 	repeat_char('=', 40, 1);
 	printf("s_inodes_count = %d\n", sp->s_inodes_count);
 	printf("s_blocks_count = %d\n", sp->s_blocks_count);

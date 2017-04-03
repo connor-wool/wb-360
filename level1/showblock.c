@@ -181,7 +181,7 @@ int search_path(int ninodes, char *pathbuf[]){
 	INODE *current;
 	int i, nextinode;
 
-	current = getino(2);
+	current = getino(2); 
 	
 	for(i = 0; i < ninodes; i++){
 		nextinode = search(current, pathbuf[i]);	
