@@ -75,6 +75,152 @@ int quit(){
 	exit(0);
 }
 
+int ls_file(char *pathname){
+	
+}
+
+int ls_directory(int ino){
+	//create pointers for inode and minode
+	MINODE *mip; INODE *ip;
+	int i;
+	char buf[BLKSIZE];
+	char *cp; DIR *dp;
+	mip = iget(dev, ino);
+	ip = &mip->INODE;
+	
+	//read all data blocks of inode that are not empty
+	i = 0;
+	while(ip->i_block[i]){
+		get_block(dev, ip->i_block[i], buf);
+		cp = buf;
+		dp = (DIR*)cp;
+		while(cp < &buf[BLKSIZE-1]){
+			printf("+++ %s\n",dp->name);
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
+		}
+		i++;
+	}
+}
+
+int ls(char *pathname){
+	MINODE *mip;
+	int ino;	
+
+	//determine the initial device to search on
+	if( pathname[0] = '/'){
+		dev = root->dev;
+	}
+	else{
+		dev = running->cwd->dev;
+	}
+
+	//get the ino for pathname
+	ino = getino(&dev, pathname);
+	//turn that ino into an minode in core
+	mip = iget(dev, ino);
+
+	//check if that inode points to a reg file or directory
+	if(mip->INODE.i_mode & 0x8000){
+		printf("ls: found a regular file at the end of ls path\n");
+	}
+	else{
+		printf("ls: found a directory at end of ls path\n");
+		ls_directory(mip->ino);
+	}		
+}
+
+int chdir(char *pathname){
+	int ino; MINODE *mip;
+	//determine initial dev
+	//convert pathname to (dev, ino)
+	//get MINODE pointing to (dev, ino)
+	//if mip is not DEV, reject with error message
+	//if mip is a DIR, dispose of old dir, set cwd to new mip
+	if(pathname[0] = '/'){
+		dev = root->dev;
+	}
+	else{
+		dev = running->cwd->dev;
+	}
+	ino = getino(&dev, pathname);
+	mip = iget(dev, ino);
+
+	if(mip->INODE.i_mode == 0x8000){
+		printf("trying to change directory to a regular file! Rejecting.\n");
+		return -1;
+	}
+	else if(mip->INODE.i_mode == 0x4000){
+		//dispose of old dir
+		iput(running->cwd);
+		//set cwd to new mip
+		running->cwd = mip;
+	}
+	
+}
+
+int pwd_helper(MINODE *mip, int child){
+	//base case of finding root inode
+	char buf[BLKSIZE];
+	int ino; char *cp; DIR *dp;
+	MINODE *parent;	
+
+	//this case short-circuits the base case of root
+	if(mip->ino == 2){
+		printf("/");
+	}
+	else{
+		//search for parent in directory
+		//root shouldn't search for his papa, he is his papa
+		get_block(dev, mip->INODE.i_block[0], buf);
+		cp = buf;
+		dp = (DIR*)cp;
+		while(cp < &buf[BLKSIZE-1]){
+			if(strcmp(dp->name, "..") == 0){
+				ino = dp->inode;
+				break;
+			}
+			cp += dp->rec_len;
+			dp = (DIR*)cp;
+		}
+		parent = iget(dev, ino);
+		pwd_helper(parent, mip->ino);
+	}
+
+	//our papa printed us, and so we print our child
+	get_block(dev, mip->INODE.i_block[0], buf);
+        cp = buf;
+	dp = (DIR*)cp;
+        while(cp < &buf[BLKSIZE-1]){
+        	if(dp->inode == child){
+                	printf("%s", dp->name);
+                        break;
+                }
+                cp += dp->rec_len;
+                dp = (DIR*)cp;
+	}
+}
+
+int pwd(MINODE *mip){
+	MINODE *papa;
+	DIR *dp; char *cp;
+	char buf[BLKSIZE];
+	int ino;
+	get_block(dev, mip->INODE.i_block[0], buf);
+        cp = buf;
+	dp = (DIR*)cp;
+        while(cp < &buf[BLKSIZE-1]){
+                if(strcmp(dp->name, "..") == 0){
+                        ino = dp->inode;
+                        break;
+                }
+                cp += dp->rec_len;
+                dp = (DIR*)cp;
+        }
+        papa = iget(dev, ino);
+	pwd_helper(papa, mip->ino);
+}
+
 //variables used for command processing
 char *disk = "mydisk";
 char line[128], cmd[64], pathname[64];
@@ -140,6 +286,10 @@ int main(int argc, char *argv[]){
 	printf("\n=== entering command processing loop ===\n\n");
 	//command processing loop
 	while(1){
+		//clear both cmd and pathname buffer
+		cmd[0] = 0;
+		pathname[0] = 0;
+		printf("loop complete. CWD=[%d]\n", running->cwd->ino);
 		printf("input command: [ls|cd|pwd|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
@@ -154,6 +304,15 @@ int main(int argc, char *argv[]){
 		//execute the commands
 		if(strcmp(cmd, "quit") == 0){
 			quit();
-		} 
+		}
+		if(strcmp(cmd, "ls") == 0){
+			ls(pathname);
+		}
+		if(strcmp(cmd, "cd") == 0){
+			chdir(pathname);
+		}
+		if(strcmp(cmd, "pwd") == 0){
+			pwd(running->cwd);
+		}
 	}	
 }

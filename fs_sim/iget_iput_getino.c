@@ -131,7 +131,7 @@ int search(MINODE *mip, char *name){
 
 	printf("searching for inode %s in parent %d\n", name, mip->ino);
 	inode = &mip->INODE;
-	nblocks = inode->i_blocks;
+	nblocks = inode->i_blocks / (BLKSIZE / 512);
 	for(i = 0; i < nblocks; i++){
 		printf("getting data block %d of %d\n", i+1, nblocks);
 		get_block(mip->dev, inode->i_block[i], buf);
@@ -162,7 +162,7 @@ int getino(int *dev, char *pathname)
 	INODE *inp;
 	MINODE *mip;
 
-	printf("getino: pathname%s\n", pathname);
+	printf("getino: pathname=`%s`\n", pathname);
 	if (strcmp(pathname, "/") == 0)
 		return 2;
 
