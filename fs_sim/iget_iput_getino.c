@@ -103,10 +103,10 @@ int iput(MINODE *mip){
 
 	mip->refCount--;
 	if(mip->refCount > 0)
-		return;
+		return 0;
 	
 	if(!mip->dirty)
-		return;
+		return 0;
 
 	//now we know we have a dirty inode that needs to be written back to disk
 	printf("iput: dev=%d ino=%d\n", mip->dev, mip->ino);
@@ -122,6 +122,7 @@ int iput(MINODE *mip){
 	
 	//write block back to disk
 	put_block(mip->dev, blk, buf);
+	return 0;
 }
 
 int search(MINODE *mip, char *name){
@@ -154,6 +155,38 @@ int search(MINODE *mip, char *name){
 	printf("not found, returning 0!\n");
 	return 0;
 }
+
+char *search_bynumber(MINODE *mip, int target_number){
+        INODE *inode;
+        int nblocks, i, j;
+        char buf[BLKSIZE];
+
+        printf("searching for inode %d in parent %d\n", target_number, mip->ino);
+        inode = &mip->INODE;
+        nblocks = inode->i_blocks / (BLKSIZE / 512);
+        for(i = 0; i < nblocks; i++){
+                printf("getting data block %d of %d\n", i+1, nblocks);
+                get_block(mip->dev, inode->i_block[i], buf);
+                char *cp = buf;
+                DIR *dp = (DIR*)cp;
+                while(cp < &buf[BLKSIZE-1]){
+                        printf("looking at %d\n", dp->inode);
+                        if(dp->inode == target_number){
+                                printf("found %d, is name %s\n", dp->inode, dp->name);
+				return make_string(dp->name);
+                        }
+                        if(dp->rec_len == 0)
+                                break;
+
+                        cp += dp->rec_len;
+                        dp = (DIR*)cp;
+                }
+
+        }
+        printf("not found, returning 0!\n");
+        return 0;
+}
+
 
 int getino(int *dev, char *pathname)
 {
@@ -196,4 +229,29 @@ int getino(int *dev, char *pathname)
 		mip = iget(*dev, ino);
 	}
 	return ino;
+}
+
+char *getinodename(int ino){
+	MINODE *mip, *pmip;
+	int i;
+	char *result;
+
+	//check if root, return "/"
+	if(ino == 2){
+		result = make_string("/");
+		return result;		
+	}
+
+	//get minode by inode#
+	mip = iget(dev, ino);
+	
+	//get the parent of this inode
+	i = search(mip, "..");
+	pmip = iget(dev, i);
+	
+	//search for this inode number in that inodes directory
+	result = search_bynumber(pmip, ino);
+
+	//return the name of this inode
+	return result;
 }

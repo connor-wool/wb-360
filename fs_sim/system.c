@@ -1,11 +1,18 @@
-/*** SYSTEM.C ***/
-/*
-	This file contains the code for KC Wang's final project.
-*/
+/**********************
+SYSTEM.C
+This file contains the driver code for KC Wang's final project.
 
+It provides a shell into an ext2 filesystem specified on the command line.
+The if none is provided, it defaults to "mydisk"
+**********************/
 
+//header files
 #include "type.h"
+
+//code libary files
 #include "iget_iput_getino.c"
+#include "alloc_dealloc.c"
+#include "cd_ls_pwd.c"
 
 //globals
 /*
@@ -131,6 +138,7 @@ int ls(char *pathname){
 }
 
 int chdir(char *pathname){
+	printf("entering chdir\n");
 	int ino; MINODE *mip;
 	//determine initial dev
 	//convert pathname to (dev, ino)
@@ -143,14 +151,19 @@ int chdir(char *pathname){
 	else{
 		dev = running->cwd->dev;
 	}
+	
 	ino = getino(&dev, pathname);
 	mip = iget(dev, ino);
 
-	if(mip->INODE.i_mode == 0x8000){
+	printf("mip is now ino=[%d]\n", mip->ino);
+	printf("mip i_mode =[%x]\n", mip->INODE.i_mode);
+
+	if(mip->INODE.i_mode & 0x8000){
 		printf("trying to change directory to a regular file! Rejecting.\n");
 		return -1;
 	}
-	else if(mip->INODE.i_mode == 0x4000){
+	else if(mip->INODE.i_mode & 0x4000){
+		printf("setting new working directory\n");
 		//dispose of old dir
 		iput(running->cwd);
 		//set cwd to new mip
@@ -219,6 +232,7 @@ int pwd(MINODE *mip){
         }
         papa = iget(dev, ino);
 	pwd_helper(papa, mip->ino);
+	printf("\n");
 }
 
 //variables used for command processing
