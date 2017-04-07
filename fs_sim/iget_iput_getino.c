@@ -18,7 +18,6 @@ int tst_bit(char *buf, int bit){
 	i = bit/8; j = bit%8;
 	if (buf[i] & (1 << j))
 		return 1;
-
 	return 0;
 }
 
