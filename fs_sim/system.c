@@ -97,13 +97,12 @@ int main(int argc, char *argv[]){
 		disk = argv[1];
 	
 	printf("=== Initialization Stage ===\n");
-	printf("main: attempting to open disk %s...\n", disk);	
 	if((dev = fd = open(disk, O_RDWR)) < 0){
 		printf("open on %s failed!\n", disk);
 		exit(1);
 	}
 
-	printf("main: disk opening complete!\n");
+	printf("main: open of disk `%s` success\n", disk);
 	printf("main: please check that the values for fd and dev seem logical:\n");
 	printf("main: \t--> fd=%d dev=%d\n", fd, dev);
 
@@ -117,7 +116,7 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 	else{
-		printf("main: verified: ext2 filesystem on disk!\n");
+		printf("main: verified ext2 filesystem!\n");
 	}
 
 	//read in GD to get info on filesystem
@@ -139,7 +138,7 @@ int main(int argc, char *argv[]){
 	//create p0 as the running process
 	printf("main: Creating P0 as the running process...\n");
 	running = &proc[0];
-	printf("main: Set running->cwd to be root\n");
+	//printf("main: Set running->cwd to be root\n");
 	running->cwd = iget(dev, 2);
 	printf("main: running->cwd is ino[%d] (should be 2)\n", running->cwd->ino);
 	printf("main: ref count of minode_0=[%d] (should be 2)\n", minode[0].refCount);
@@ -148,11 +147,12 @@ int main(int argc, char *argv[]){
 	printf("\n=== entering command processing loop ===\n\n");
 	//command processing loop
 	while(1){
+		printf("\n=== start new command execution loop ===\n");
 		//clear both cmd and pathname buffer
 		cmd[0] = 0;
 		pathname[0] = 0;
-		printf("loop complete. CWD=[%d]\n", running->cwd->ino);
-		printf("input command: [ls|cd|pwd|quit] ");
+		printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
+		printf("input command: [ls|cd|pwd|mkdir|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		printf("read input: `%s`\n", line);

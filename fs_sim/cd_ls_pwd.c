@@ -23,8 +23,11 @@ int ls_directory(int ino){
                 get_block(dev, ip->i_block[i], buf);
                 cp = buf;
                 dp = (DIR*)cp;
-                while(cp < &buf[BLKSIZE-1]){
-                        printf("+++ %s\n",dp->name);
+                while(cp < &buf[BLKSIZE-1] && dp->rec_len > 0){
+			char *namebuf = (char*)malloc(dp->name_len + 1);
+			memset(namebuf, 0, dp->name_len +1);
+			memcpy(namebuf,dp->name,dp->name_len);
+                        printf("+++ %s\n",namebuf);
                         cp += dp->rec_len;
                         dp = (DIR*)cp;
                 }
@@ -38,12 +41,25 @@ int ls(char *pathname){
         int ino;
 
         //determine the initial device to search on
-        if( pathname[0] = '/'){
+        if( pathname[0] == '/'){
                 dev = root->dev;
         }
         else{
                 dev = running->cwd->dev;
         }
+
+	//sanatize input from user
+	char *sacrifice = make_string(pathname);
+	char *sani = (char*) malloc(256);
+	memset(sani, 0, 256);
+	strcat(sani, dirname(sacrifice));
+	free(sacrifice);
+	if(strcmp(sani, ".") != 0){
+		sacrifice = make_string(pathname);
+		strcat(sani, basename(sacrifice));
+		free(sacrifice);
+	}
+	printf("string is `%s`?\n",sani);
 
         //get the ino for pathname
         ino = getino(&dev, pathname);
@@ -62,16 +78,19 @@ int ls(char *pathname){
 
 int chdir(char *pathname){
         printf("entering chdir\n");
-        int ino; MINODE *mip;
+        printf("chdir arg string is `%s`\n", pathname);
+	int ino; MINODE *mip;
         //determine initial dev
         //convert pathname to (dev, ino)
         //get MINODE pointing to (dev, ino)
         //if mip is not DEV, reject with error message
         //if mip is a DIR, dispose of old dir, set cwd to new mip
-        if(pathname[0] = '/'){
-                dev = root->dev;
+        if(pathname[0] == '/'){
+                printf("starting chdir search from root\n");
+		dev = root->dev;
         }
         else{
+		printf("starting chdir search from relative\n");
                 dev = running->cwd->dev;
         }
 

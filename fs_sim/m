@@ -1,0 +1,6 @@
+#! /bin/bash
+
+sudo mount -o loop diskimage_copy /mnt
+cd /mnt
+ls
+sudo umount /mnt

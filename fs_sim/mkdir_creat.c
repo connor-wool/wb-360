@@ -10,7 +10,8 @@ int enter_name(MINODE *pip, int myino, char *myname){
     char *cp;
 
     printf("search for last data block:\n");
-    for(int i = 0; i < 12; i++){
+    i = 1;
+    for(int i = 1; i < 12; i++){
         printf("looking at data block [%d] val=[%d]\n", i, pip->INODE.i_block[i]);
         if (pip->INODE.i_block[i] == 0){
             break;
@@ -26,7 +27,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
     cp = buf;
 
     printf("searching for last dir entry\n");
-    while(cp + dp->rec_len < buf + BLKSIZE){
+    while(cp + dp->rec_len < buf + BLKSIZE && dp->rec_len > 0){
         printf("moving past %s\n", dp->name);
         cp += dp->rec_len;
         dp = (DIR*)cp;
