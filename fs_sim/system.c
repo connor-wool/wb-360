@@ -14,6 +14,7 @@ The if none is provided, it defaults to "mydisk"
 #include "alloc_dealloc.c"
 #include "cd_ls_pwd.c"
 #include "mkdir_creat.c"
+#include "rmdir.c"
 
 //globals
 /*
@@ -149,7 +150,7 @@ int main(int argc, char *argv[]){
 		pathname[0] = 0;
 		printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("--> input command: [ls|cd|pwd|mkdir|creat|refcount|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|refcount|debug|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		if(DEBUGGING) printf("found input: `%s`\n", line);
@@ -175,6 +176,9 @@ int main(int argc, char *argv[]){
 		}
 		if(strcmp(cmd, "mkdir") == 0){
 			make_dir(pathname);
+		}
+		if(strcmp(cmd, "rmdir") == 0){
+			rm_dir(pathname);
 		}
 		if(strcmp(cmd, "creat") == 0){
 			creat_file(pathname);
