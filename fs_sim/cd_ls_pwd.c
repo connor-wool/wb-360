@@ -10,7 +10,10 @@ int refcount(){
 	MINODE *mip;
 	for(int i = 0; i < NMINODE; i++){
 		mip = &minode[i];
-		printf("|REFCOUNT| (minode) ino=%d ref_count%d\n", mip->ino, mip->refCount);
+		if(mip->ino == 0)
+			continue;
+
+		printf("|REFCOUNT| (minode) ino=[%2d] ref_count[%2d]\n", mip->ino, mip->refCount);
 	}
 }
 
@@ -43,6 +46,7 @@ int ls_directory(int ino){
                 }
                 i++;
         }
+	iput(mip);
 }
 
 
@@ -69,7 +73,7 @@ int ls(char *pathname){
 		strcat(sani, basename(sacrifice));
 		free(sacrifice);
 	}
-	printf("ls: sanitized path string is `%s`\n",sani);
+	if(DEBUGGING) printf("ls: sanitized path string is `%s`\n",sani);
 
         //get the ino for pathname
         ino = getino(&dev, sani);
@@ -78,17 +82,20 @@ int ls(char *pathname){
 
         //check if that inode points to a reg file or directory
         if(mip->INODE.i_mode & 0x8000){
-                printf("ls: found a regular file at the end of ls path\n");
+                if(DEBUGGING) printf("ls: found a regular file at the end of ls path\n");
         }
         else{
-                printf("ls: found a directory at end of ls path\n");
+                if(DEBUGGING) printf("ls: found a directory at end of ls path\n");
                 ls_directory(mip->ino);
         }
+	iput(mip);
 }
 
 int chdir(char *pathname){
-        printf("entering chdir\n");
-        printf("chdir arg string is `%s`\n", pathname);
+        if(DEBUGGING){
+		printf("entering chdir\n");
+        	printf("chdir arg string is `%s`\n", pathname);
+	}
 	int ino; MINODE *mip;
         //determine initial dev
         //convert pathname to (dev, ino)
@@ -96,29 +103,33 @@ int chdir(char *pathname){
         //if mip is not DEV, reject with error message
         //if mip is a DIR, dispose of old dir, set cwd to new mip
         if(pathname[0] == '/'){
-                printf("starting chdir search from root\n");
+                if(DEBUGGING) printf("starting chdir search from root\n");
 		dev = root->dev;
         }
         else{
-		printf("starting chdir search from relative\n");
+		if(DEBUGGING) printf("starting chdir search from relative\n");
                 dev = running->cwd->dev;
         }
 
-	printf("pause for breath: then get inode\n");
-	getchar();
+	if(DEBUGGING){
+		printf("pause for breath: then get inode\n");
+		getchar();
+	}
 
         ino = getino(&dev, pathname);
         mip = iget(dev, ino);
 
-        printf("mip is now ino=[%d]\n", mip->ino);
-        printf("mip i_mode =[%x]\n", mip->INODE.i_mode);
+	if(DEBUGGING){
+        	printf("mip is now ino=[%d]\n", mip->ino);
+        	printf("mip i_mode =[%x]\n", mip->INODE.i_mode);
+	}
 
         if(mip->INODE.i_mode & 0x8000){
                 printf("trying to change directory to a regular file! Rejecting.\n");
                 return -1;
         }
         else if(mip->INODE.i_mode & 0x4000){
-                printf("setting new working directory\n");
+                if(DEBUGGING) printf("setting new working directory\n");
                 //dispose of old dir
                 iput(running->cwd);
                 //set cwd to new mip
@@ -153,6 +164,7 @@ int pwd_helper(MINODE *mip, int child){
                 }
                 parent = iget(dev, ino);
                 pwd_helper(parent, mip->ino);
+		iput(parent);
         }
 
         //our papa printed us, and so we print our child then /
@@ -188,6 +200,7 @@ int pwd(MINODE *mip){
         }
         papa = iget(dev, ino);
         pwd_helper(papa, mip->ino);
+	iput(papa);
         printf("\n");
 }
 

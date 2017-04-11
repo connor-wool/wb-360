@@ -43,7 +43,7 @@ char* make_string(char *source){
 }
 
 int tokenize(char *source, char *result[]){
-	printf("tokenizing string `%s` on '/'\n", source);
+	if(DEBUGGING) printf("tokenizing string `%s` on '/'\n", source);
 	char *sacrifice, *token;
 	int i;
 
@@ -52,7 +52,7 @@ int tokenize(char *source, char *result[]){
 	token = strtok(sacrifice, "/");
 	while(token > 0){
 		result[i] = make_string(token);
-		printf("found `%s`\n", result[i]);
+		if(DEBUGGING) printf("found `%s`\n", result[i]);
 		token = strtok(0, "/");
 		i++;
 	}
@@ -83,21 +83,22 @@ MINODE *iget(int dev, int ino){
 		mip = &minode[i];
 		if(mip->dev == dev && mip->ino == ino){
 			mip->refCount++;
-			printf("iget: found [dev=%d ino=%d] as minode[%d] in core\n", dev, ino, i);
+			if(DEBUGGING) printf("iget: found [dev=%d ino=%d] as minode[%d] in core\n", dev, ino, i);
 			return mip;
 		}
 	}
 	for(i=0; i < NMINODE; i++){
 		mip = &minode[i];
 		if(mip->refCount == 0){
-			printf("iget: allocating NEW minode[%d] for [dev=%d ino=%d]\n",i,dev,ino);
+			iput(mip);
+			if(DEBUGGING) printf("iget: allocating NEW minode[%d] for [dev=%d ino=%d]\n",i,dev,ino);
 			mip->refCount = 1;
 			mip->dev = dev; mip->ino = ino;
 			mip->dirty = mip->mounted = 0;
 			//get INODE of ino into buf;
 			blk = (ino-1)/8 + iblock;
 			offset = (ino -1) % 8;
-			printf("iget: ino=%d blk=%d offset=%d\n",ino,blk,offset);
+			if(DEBUGGING) printf("iget: ino=%d blk=%d offset=%d\n",ino,blk,offset);
 			get_block(dev, blk, buf);
 			ip = (INODE*)buf + offset;
 			//copy IONDE to mp->INODE
@@ -116,13 +117,18 @@ int iput(MINODE *mip){
 	char buf[BLKSIZE];
 
 	mip->refCount--;
-	if(mip->refCount > 0)
-		printf("iput: [%d] remains in array because refcount=%d\n",mip->ino, mip->refCount);
+
+	if(DEBUGGING) printf("iput: ino=[%d] ref=[%d] dirty=[%d]\n", mip->ino, mip->refCount, mip->dirty);
+
+	if(mip->refCount > 0){
+		if(DEBUGGING) printf("iput: [%d] remains in array because refcount=%d\n",mip->ino, mip->refCount);
 		return 0;
-	
-	if(!mip->dirty)
-		printf("iput: [%d] no write to disk because dirty=%d\n",mip->ino, mip->dirty);
+	}
+
+	if(!mip->dirty){
+		if(DEBUGGING) printf("iput: [%d] no write to disk because dirty=%d\n",mip->ino, mip->dirty);
 		return 0;
+	}
 
 	//now we know we have a dirty inode that needs to be written back to disk
 	//printf("iput: dev=%d ino=%d\n", mip->dev, mip->ino);
@@ -131,7 +137,7 @@ int iput(MINODE *mip){
 	blk = ((mip->ino)-1)/8 + iblock;
 	offset = ((mip->ino) -1) %8;
 
-	printf("iput: dev=%d ino=%d blk=%d\n", mip->dev, mip->ino, blk);
+	if(DEBUGGING) printf("iput: write to disk: dev=[%d] ino=[%d] blk=[%d]\n", mip->dev, mip->ino, blk);
 
 	//read in buffer
 	get_block(mip->dev, blk, buf);
@@ -148,25 +154,27 @@ int search(MINODE *mip, char *name){
 	int nblocks, i, j;
 	char buf[BLKSIZE];
 
-	printf("search: name %s in ino=%d\n", name, mip->ino);
+	if(DEBUGGING) printf("search: name %s in ino=%d\n", name, mip->ino);
 	inode = &mip->INODE;
 	nblocks = inode->i_blocks / (BLKSIZE / 512);
 	
-	printf("search:there are [%d] blocks in this inode\n", nblocks);
-	printf("pause for breath, press any key:\n");
-	getchar();	
+	if(DEBUGGING){
+		printf("search:there are [%d] blocks in this inode\n", nblocks);
+		printf("pause for breath, press any key:\n");
+		getchar();	
+	}
 
 	//this is causing a weird error
 	for(i = 0; i < nblocks; i++){
-		printf("search: getting data block %d of %d\n", i+1, nblocks);
-		printf("search: bnum=[%d]\n", inode->i_block[i]);
+		if(DEBUGGING) printf("search: getting data block %d of %d\n", i+1, nblocks);
+		if(DEBUGGING) printf("search: bnum=[%d]\n", inode->i_block[i]);
 		get_block(mip->dev, inode->i_block[i], buf);
 		char *cp = buf;
 		DIR *dp = (DIR*)cp;
 		while(cp < &buf[BLKSIZE-1] && dp->rec_len > 0){
-			printf("looking at [ino=%d rlen=%d n=`%s`]\n",dp->inode, dp->rec_len, dp->name);
+			if(DEBUGGING) printf("looking at [ino=%d rlen=%d n=`%s`]\n",dp->inode, dp->rec_len, dp->name);
 			if(strcmp(name, dp->name) == 0){
-				printf("found `%s` as ino=%d\n", dp->name, dp->inode);
+				if(DEBUGGING) printf("found `%s` as ino=%d\n", dp->name, dp->inode);
 				return dp->inode;
 			}
 			if(dp->rec_len == 0)
@@ -177,7 +185,7 @@ int search(MINODE *mip, char *name){
 		}
 		
 	}
-	printf("not found, returning 0!\n");
+	if(DEBUGGING) printf("not found, returning 0!\n");
 	return 0;
 }
 
@@ -186,21 +194,24 @@ char *search_bynumber(MINODE *mip, int target_number){
         int nblocks, i, j;
         char buf[BLKSIZE];
 
-        printf("searching for inode %d in parent %d\n", target_number, mip->ino);
+        if(DEBUGGING) printf("searching for inode %d in parent %d\n", target_number, mip->ino);
         inode = &mip->INODE;
         nblocks = inode->i_blocks / (BLKSIZE / 512);
-        printf("pause for breath\n");
-	getchar();
+        
+	if(DEBUGGING){
+		printf("pause for breath, press any key to continue\n");
+		getchar();
+	}
 	
 	for(i = 0; i < nblocks; i++){
-                printf("getting data block %d of %d\n", i+1, nblocks);
+                if(DEBUGGING) printf("getting data block %d of %d\n", i+1, nblocks);
                 get_block(mip->dev, inode->i_block[i], buf);
                 char *cp = buf;
                 DIR *dp = (DIR*)cp;
                 while(cp < &buf[BLKSIZE-1]){
-                        printf("looking at %d\n", dp->inode);
+                        if(DEBUGGING) printf("looking at %d\n", dp->inode);
                         if(dp->inode == target_number){
-                                printf("found %d, is name %s\n", dp->inode, dp->name);
+                                if(DEBUGGING) printf("found %d, is name %s\n", dp->inode, dp->name);
 				return make_string(dp->name);
                         }
                         if(dp->rec_len == 0)
@@ -211,7 +222,7 @@ char *search_bynumber(MINODE *mip, int target_number){
                 }
 
         }
-        printf("not found, returning 0!\n");
+        if(DEBUGGING) printf("not found, returning 0!\n");
         return 0;
 }
 
@@ -223,7 +234,7 @@ int getino(int *dev, char *pathname)
 	INODE *inp;
 	MINODE *mip;
 
-	printf("getino: pathname=`%s`\n", pathname);
+	if(DEBUGGING) printf("getino: pathname=`%s`\n", pathname);
 	if (strcmp(pathname, "/") == 0)
 		return 2;
 
@@ -255,6 +266,7 @@ int getino(int *dev, char *pathname)
 		iput(mip);
 		mip = iget(*dev, ino);
 	}
+	iput(mip);
 	return ino;
 }
 
@@ -263,7 +275,7 @@ char *getinodename(int ino){
 	int i;
 	char *result;
 
-	printf("getting inode name for [%d]\n", ino);
+	if(DEBUGGING) printf("getting inode name for [%d]\n", ino);
 	//check if root, return "/"
 	if(ino == 2){
 		result = make_string("/");
@@ -279,6 +291,9 @@ char *getinodename(int ino){
 	
 	//search for this inode number in that inodes directory
 	result = search_bynumber(pmip, ino);
+
+	iput(mip);
+	iput(pmip);
 
 	//return the name of this inode
 	return result;

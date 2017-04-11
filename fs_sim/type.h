@@ -56,6 +56,13 @@ MINODE minode[NMINODE];
 MINODE *root;
 PROC proc[NPROC], *running;
 
-int DEBUGGING = 0;
+int DEBUGGING = 1;
 int fd, dev;
 int nblocks, ninodes, bmap, imap, iblock;
+
+int toggle_debug(){
+	if(DEBUGGING)
+		DEBUGGING = 0;
+	else
+		DEBUGGING = 1;
+}

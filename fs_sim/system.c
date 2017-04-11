@@ -70,11 +70,13 @@ int quit(){
 
 	for(i = 0; i < NMINODE; i++){
 		mip = &minode[i];
-		if(mip->refCount > 0){
-			mip->refCount = 1;
-			mip->dirty = 1;
+		if(mip->ino > 0){
+			if(DEBUGGING) printf("looking at minode for ino=[%d]\n", mip->ino);
+			if(mip->refCount > 0){
+				mip->refCount = 1;
+			}
+			iput(mip);
 		}
-		iput(mip);
 	}
 	printf("\n=== Shutting down... I don't hate you... ===\n\n");
 	exit(0);
@@ -138,7 +140,8 @@ int main(int argc, char *argv[]){
 	printf("main: ref count of minode_0=[%d] (should be 2)\n", minode[0].refCount);
 	printf("=== Initialization Stage Complete ===\n");
 
-	printf("\n=== entering command processing loop ===\n\n");
+	printf("\n=== entering command processing loop ===\n");
+	printf("=== please note, debugging is turned on by default ===\n");
 	//command processing loop
 	while(1){
 		//clear both cmd and pathname buffer
@@ -146,15 +149,15 @@ int main(int argc, char *argv[]){
 		pathname[0] = 0;
 		printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("--> input command: [ls|cd|pwd|mkdir|refcount|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|creat|refcount|debug|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
-		printf("found input: `%s`\n", line);
+		if(DEBUGGING) printf("found input: `%s`\n", line);
 		if(strcmp(line, "") == 0) {
 			continue; }
 		else{
 			sscanf(line, "%s %s", cmd, pathname);
-			printf("split: cmd=`%s` pathname=`%s`\n", cmd, pathname);
+			if(DEBUGGING) printf("split: cmd=`%s` pathname=`%s`\n", cmd, pathname);
 		}
 		
 		//execute the commands
@@ -173,8 +176,18 @@ int main(int argc, char *argv[]){
 		if(strcmp(cmd, "mkdir") == 0){
 			make_dir(pathname);
 		}
+		if(strcmp(cmd, "creat") == 0){
+			creat_file(pathname);
+		}
 		if(strcmp(cmd, "refcount") == 0){
 			refcount();
+		}
+		if(strcmp(cmd, "debug") == 0){
+			if(DEBUGGING)
+				printf("!!! turning debug output off !!!\n");
+			else
+				printf("!!! turning debug output on !!!\n");
+			toggle_debug();
 		}
 	}	
 }
