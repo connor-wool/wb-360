@@ -56,5 +56,6 @@ MINODE minode[NMINODE];
 MINODE *root;
 PROC proc[NPROC], *running;
 
+int DEBUGGING = 0;
 int fd, dev;
 int nblocks, ninodes, bmap, imap, iblock;

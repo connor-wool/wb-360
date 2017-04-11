@@ -47,16 +47,19 @@ int enter_name(MINODE *pip, int myino, char *myname){
     printf("we need [%d] bytes to enter new inode\n", need_length);
 
     if(remain >= need_length){
-        dp->rec_len = ideal_length;
+        printf("there is enough space, creating entry\n");
+	dp->rec_len = ideal_length;
         cp += dp->rec_len;
         dp = (DIR*)cp;
         dp->inode = myino;
         dp->rec_len = remain;
         dp->name_len = strlen(myname);
         strcpy(dp->name, myname);
+	printf("final entry now: [ino=%d rlen=%d n=%s]\n", dp->inode, dp->rec_len, dp->name);
 	put_block(pip->dev, pip->INODE.i_block[i-1], buf);
     }    
     else{
+	printf("not enough space, making new data block\n");
         //we need to allocate a new data block for this entry
         int bno = balloc(pip->dev);
         pip->INODE.i_size += BLKSIZE;
@@ -76,6 +79,7 @@ int mymkdir(MINODE *pip, char *name){
     //allocate an inode and a disk block for directory
     int ino = ialloc(dev);
     int bno = balloc(dev);
+    printf("make new dir using: ino=%d bno=%d\n", ino, bno);
 
     //load the new inode into memory
     MINODE *mip = iget(dev, ino);
@@ -90,14 +94,19 @@ int mymkdir(MINODE *pip, char *name){
     ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);
     ip->i_blocks = 2;
     ip->i_block[0] = bno;
-    for(int i = 0; i < 15; i++){
+    for(int i = 1; i < 15; i++){
         ip->i_block[i] = 0;
     }
     mip->dirty = 1;
+
+    print_minode(mip);
+
     iput(mip);
 
     char buf[BLKSIZE];
+    printf("reading in bno=[%d]\n", bno);
     get_block(dev, bno, buf);
+    memset(buf, 0, BLKSIZE);
     char *cp = buf;
     DIR *dp = (DIR*)cp;
     dp->inode = mip->ino;
@@ -111,11 +120,22 @@ int mymkdir(MINODE *pip, char *name){
     dp->name_len = 2;
     strcpy(dp->name, "..");
     put_block(dev, bno, buf);
+    
+    get_block(dev, bno, buf);
+    cp = buf;
+	dp = (DIR*)cp;
+	while(cp < &buf[BLKSIZE-1]){
+		dp = (DIR*)cp;
+		printf("dir entry [ino=%d rlen=%d name=`%s`]\n", dp->inode, dp->rec_len, dp->name);
+		cp += dp->rec_len;
+	}
 
     enter_name(pip, ino, name);
 }
 
 int make_dir(char *pathname){
+    printf("make_dir: got pathname `%s`\n", pathname);
+
     MINODE *mip, *pip;
     int pino;
     char *parent, *child;
@@ -131,19 +151,23 @@ int make_dir(char *pathname){
     parent = dirname(make_string(pathname));
     child = basename(make_string(pathname));
 
+	printf("make_dir: split parent=`%s` child=`%s`\n", parent,child);
+
     //get MINODE of parent
     pino = getino(&dev, parent);
     pip = iget(dev, pino);
 
     //verify parent inode is dir
+	printf("make_dir: parent i_mode=[%x]\n", pip->INODE.i_mode);
+
     if( !(pip->INODE.i_mode & 0x4000)){
-        printf("Cannot create dir under reg. file\n");
+        printf("Cannot create dir under reg. file (mode != 0x4000)\n");
         return -1;
     }
 
     //verify child doesn't already exist
     if(getino(&dev, pathname)){
-        printf("directory already exists!\n");
+        printf("directory %s already exists!\n", child);
         return -1;
     }
 

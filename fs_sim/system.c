@@ -55,13 +55,10 @@ int init(){
 
 //load root inode and set root pointer to it
 int mount_root(){
-	printf("mount_root: mounting root!\n");
 	root = iget(dev, 2);
 	if(root > 0){
-		printf("mount_root: root mounted successfully! root = inode[%d]\n",root->ino);
 	}
 	else{
-		printf("mount_root: mount root failed... somehow. Exiting.\n");
 		exit(1);
 	}
 }
@@ -103,11 +100,9 @@ int main(int argc, char *argv[]){
 	}
 
 	printf("main: open of disk `%s` success\n", disk);
-	printf("main: please check that the values for fd and dev seem logical:\n");
 	printf("main: \t--> fd=%d dev=%d\n", fd, dev);
 
 	//check for ext2 filesystem and get some info
-	printf("main: checking disk for ext2 filesystem...\n");
 	get_block(fd, 1, buf);
 	sp = (SUPER*)buf;
 	if(sp->s_magic != 0xef53){
@@ -116,7 +111,7 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 	else{
-		printf("main: verified ext2 filesystem!\n");
+		printf("main: verified ext2 filesystem\n");
 	}
 
 	//read in GD to get info on filesystem
@@ -136,7 +131,6 @@ int main(int argc, char *argv[]){
 	mount_root();
 	
 	//create p0 as the running process
-	printf("main: Creating P0 as the running process...\n");
 	running = &proc[0];
 	//printf("main: Set running->cwd to be root\n");
 	running->cwd = iget(dev, 2);
@@ -147,20 +141,20 @@ int main(int argc, char *argv[]){
 	printf("\n=== entering command processing loop ===\n\n");
 	//command processing loop
 	while(1){
-		printf("\n=== start new command execution loop ===\n");
 		//clear both cmd and pathname buffer
 		cmd[0] = 0;
 		pathname[0] = 0;
-		printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("input command: [ls|cd|pwd|mkdir|quit] ");
+		printf("\n=== start new command execution loop ===\n");
+		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
+		printf("--> input command: [ls|cd|pwd|mkdir|refcount|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
-		printf("read input: `%s`\n", line);
+		printf("found input: `%s`\n", line);
 		if(strcmp(line, "") == 0) {
 			continue; }
 		else{
 			sscanf(line, "%s %s", cmd, pathname);
-			printf("cmd=%s pathname=%s\n", cmd, pathname);
+			printf("split: cmd=`%s` pathname=`%s`\n", cmd, pathname);
 		}
 		
 		//execute the commands
@@ -178,6 +172,9 @@ int main(int argc, char *argv[]){
 		}
 		if(strcmp(cmd, "mkdir") == 0){
 			make_dir(pathname);
+		}
+		if(strcmp(cmd, "refcount") == 0){
+			refcount();
 		}
 	}	
 }

@@ -4,6 +4,16 @@ cd_ls_pwd.c
 contains code to run the cd (chdir) ls, and pwd functions on our ext2 filesystem
 ******************************/
 
+int refcount(){
+	//print names and refcounts for minode array
+	int i;
+	MINODE *mip;
+	for(int i = 0; i < NMINODE; i++){
+		mip = &minode[i];
+		printf("|REFCOUNT| (minode) ino=%d ref_count%d\n", mip->ino, mip->refCount);
+	}
+}
+
 int ls_file(char *pathname){
 
 }
@@ -27,7 +37,7 @@ int ls_directory(int ino){
 			char *namebuf = (char*)malloc(dp->name_len + 1);
 			memset(namebuf, 0, dp->name_len +1);
 			memcpy(namebuf,dp->name,dp->name_len);
-                        printf("+++ %s\n",namebuf);
+                        printf("|LS| %s\n",namebuf);
                         cp += dp->rec_len;
                         dp = (DIR*)cp;
                 }
@@ -59,10 +69,10 @@ int ls(char *pathname){
 		strcat(sani, basename(sacrifice));
 		free(sacrifice);
 	}
-	printf("string is `%s`?\n",sani);
+	printf("ls: sanitized path string is `%s`\n",sani);
 
         //get the ino for pathname
-        ino = getino(&dev, pathname);
+        ino = getino(&dev, sani);
         //turn that ino into an minode in core
         mip = iget(dev, ino);
 
@@ -93,6 +103,9 @@ int chdir(char *pathname){
 		printf("starting chdir search from relative\n");
                 dev = running->cwd->dev;
         }
+
+	printf("pause for breath: then get inode\n");
+	getchar();
 
         ino = getino(&dev, pathname);
         mip = iget(dev, ino);
@@ -142,7 +155,7 @@ int pwd_helper(MINODE *mip, int child){
                 pwd_helper(parent, mip->ino);
         }
 
-        //our papa printed us, and so we print our child
+        //our papa printed us, and so we print our child then /
         get_block(dev, mip->INODE.i_block[0], buf);
         cp = buf;
         dp = (DIR*)cp;
@@ -154,6 +167,7 @@ int pwd_helper(MINODE *mip, int child){
                 cp += dp->rec_len;
                 dp = (DIR*)cp;
         }
+	printf("/");
 }
 
 int pwd(MINODE *mip){

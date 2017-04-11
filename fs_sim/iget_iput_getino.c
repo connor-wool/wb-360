@@ -43,7 +43,7 @@ char* make_string(char *source){
 }
 
 int tokenize(char *source, char *result[]){
-	printf("tokenizing string!\n");
+	printf("tokenizing string `%s` on '/'\n", source);
 	char *sacrifice, *token;
 	int i;
 
@@ -52,11 +52,26 @@ int tokenize(char *source, char *result[]){
 	token = strtok(sacrifice, "/");
 	while(token > 0){
 		result[i] = make_string(token);
+		printf("found `%s`\n", result[i]);
 		token = strtok(0, "/");
 		i++;
 	}
 	return i;
 }
+
+int print_minode(MINODE *mip){
+	printf("Printing minode #%d\n", mip->ino);
+	INODE *ip = &mip->INODE;
+	printf("i_mode=[%x]\n", ip->i_mode);
+	printf("i_uid=[%d]\n", ip->i_uid);
+	printf("i_size=[%d]\n", ip->i_size);
+	printf("i_links_count=[%d]\n", ip->i_links_count);
+	printf("i_blocks=[%d] (1024)\n", ip->i_blocks / 2);
+	printf("i_block[0]=[%d]\n", ip->i_block[0]);
+	printf("dirty=[%d]\n", mip->dirty);
+	printf("-----\n");
+}
+
 
 MINODE *iget(int dev, int ino){
 	int i, blk, offset;
@@ -102,17 +117,21 @@ int iput(MINODE *mip){
 
 	mip->refCount--;
 	if(mip->refCount > 0)
+		printf("iput: [%d] remains in array because refcount=%d\n",mip->ino, mip->refCount);
 		return 0;
 	
 	if(!mip->dirty)
+		printf("iput: [%d] no write to disk because dirty=%d\n",mip->ino, mip->dirty);
 		return 0;
 
 	//now we know we have a dirty inode that needs to be written back to disk
-	printf("iput: dev=%d ino=%d\n", mip->dev, mip->ino);
+	//printf("iput: dev=%d ino=%d\n", mip->dev, mip->ino);
 	
 	//use mip->ino to compute blk of inode, offset of inode
 	blk = ((mip->ino)-1)/8 + iblock;
 	offset = ((mip->ino) -1) %8;
+
+	printf("iput: dev=%d ino=%d blk=%d\n", mip->dev, mip->ino, blk);
 
 	//read in buffer
 	get_block(mip->dev, blk, buf);
@@ -129,18 +148,25 @@ int search(MINODE *mip, char *name){
 	int nblocks, i, j;
 	char buf[BLKSIZE];
 
-	printf("searching for inode %s in parent %d\n", name, mip->ino);
+	printf("search: name %s in ino=%d\n", name, mip->ino);
 	inode = &mip->INODE;
 	nblocks = inode->i_blocks / (BLKSIZE / 512);
+	
+	printf("search:there are [%d] blocks in this inode\n", nblocks);
+	printf("pause for breath, press any key:\n");
+	getchar();	
+
+	//this is causing a weird error
 	for(i = 0; i < nblocks; i++){
-		printf("getting data block %d of %d\n", i+1, nblocks);
+		printf("search: getting data block %d of %d\n", i+1, nblocks);
+		printf("search: bnum=[%d]\n", inode->i_block[i]);
 		get_block(mip->dev, inode->i_block[i], buf);
 		char *cp = buf;
 		DIR *dp = (DIR*)cp;
-		while(cp < &buf[BLKSIZE-1]){
-			printf("looking at %s\n", dp->name);
+		while(cp < &buf[BLKSIZE-1] && dp->rec_len > 0){
+			printf("looking at [ino=%d rlen=%d n=`%s`]\n",dp->inode, dp->rec_len, dp->name);
 			if(strcmp(name, dp->name) == 0){
-				printf("found %s, is ino# %d\n", dp->name, dp->inode);
+				printf("found `%s` as ino=%d\n", dp->name, dp->inode);
 				return dp->inode;
 			}
 			if(dp->rec_len == 0)
@@ -163,7 +189,10 @@ char *search_bynumber(MINODE *mip, int target_number){
         printf("searching for inode %d in parent %d\n", target_number, mip->ino);
         inode = &mip->INODE;
         nblocks = inode->i_blocks / (BLKSIZE / 512);
-        for(i = 0; i < nblocks; i++){
+        printf("pause for breath\n");
+	getchar();
+	
+	for(i = 0; i < nblocks; i++){
                 printf("getting data block %d of %d\n", i+1, nblocks);
                 get_block(mip->dev, inode->i_block[i], buf);
                 char *cp = buf;
@@ -211,16 +240,15 @@ int getino(int *dev, char *pathname)
 	int n = tokenize(pathname, pathbuf);
 
 	for (i=0; i < n; i++){
-		printf("============================\n");
-		printf("getino: i=%d\n", i);
+		//printf("getino: i=%d\n", i);
+		//ino = search(mip, name[i]);
 
 		//search for next file in path
-		//ino = search(mip, name[i]);
 		ino = search(mip, pathbuf[i]);
 
 		if (ino == 0){
 			iput(mip);
-			printf("name %s does not exist\n", pathbuf[i]);
+			printf("getino: name %s does not exist\n", pathname);
 			return 0;
 		} 
 		
@@ -235,6 +263,7 @@ char *getinodename(int ino){
 	int i;
 	char *result;
 
+	printf("getting inode name for [%d]\n", ino);
 	//check if root, return "/"
 	if(ino == 2){
 		result = make_string("/");
