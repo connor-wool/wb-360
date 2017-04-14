@@ -2,6 +2,7 @@
 link_unlink.c
 */
 
+#include "mkdir_creat.c"
 
 // link oldfile newfile
 //returns 1 if success, 0 if fail
@@ -33,7 +34,7 @@ int link(char* oldfile, char* newfile) {
 	child = basename(make_string(newfile));
 	
 	//get parent in memory
-	nino = getino(&dev, parent);
+	int nino = getino(&dev, parent);
 	MINODE* nmip = iget(dev, nino);
 
 
@@ -91,6 +92,8 @@ int link(char* oldfile, char* newfile) {
 // returns 1 for success, 0 for failure
 int unlink(char* filename) {
 
+	char* parent, child;
+
 	ino = getino(&dev, filename);
 	mip = iget(dev, ino);
 
@@ -101,21 +104,48 @@ int unlink(char* filename) {
 		return 0;	
 	}
 
-	//check oldfile type (cannot be DIR)
+	//check file type (cannot be DIR)
 	if(mip->INODE.i_mode == 0x4000) { //file cannot be dir
 		printf("File cannot be directory!\n")
 		iput(mip);		
 		return 0; //fail
 	}
 
- 	INODE* ip = &mip->inode;
-
-
-
+	//split filename into parent and child
+	parent = dirname(make_string(filename));
+	child = basename(make_string(filename));
 	
+	//get parent in memory
+	int pino = getino(&dev, parent);
+	MINODE* pmip = iget(dev, pino);
+	
+	// remove basename from parent DIR
+	rm_child(pmip, child); //(MINDODE*, char*)
+	pmip->dirty = 1;
+	iput(pmip);
+ 
+	// decrement INODE's link_count
+	mip->INODE.i_links_count--;
+	if (mip->INODE.i_links_count > 0){
+		mip->dirty = 1; 
+		iput(mip);
+	}
+
+/*
+	4. if (!SLINK file)
+// assume:SLINK file has no data block
+truncate(mip); // deallocate all data blocks
+deallocate INODE;
+iput(mip);
+
+*/
 
 return 1;
 }
+
+
+
+
 
 
 /*********** Algorithm of unlink ************
