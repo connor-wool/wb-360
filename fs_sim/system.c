@@ -15,6 +15,7 @@ The if none is provided, it defaults to "mydisk"
 #include "cd_ls_pwd.c"
 #include "mkdir_creat.c"
 #include "rmdir.c"
+#include "link_unlink.c"
 
 //globals
 /*
