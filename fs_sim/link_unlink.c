@@ -7,46 +7,112 @@ link_unlink.c
 //returns 1 if success, 0 if fail
 int link(char* oldfile, char* newfile) {
 
-	int oino = getino(&odev, old_file);
-	MINODE* omip = iget(odev, oino);
+	char* parent, child;
+	int dev = running->cwd->device;
+	
+	//get 
+	int oino = getino(&dev, oldfile);
+	MINODE* omip = iget(dev, oino);
 
     	// Verify that oldfile exists
-    	if(!mip) {
+    	if(!omip) {
 		printf("File does not exist!\n");
+		iput(omip);
 		return 0; //fail
 	}
 
-	//check file type (cannot be DIR)
+	//check oldfile type (cannot be DIR)
 	if(omip->INODE.i_mode == 0x4000) { //file cannot be dir
-		printf("File cannot be directory!\n")		
+		printf("File cannot be directory!\n")
+		iput(omip);		
 		return 0; //fail
 	}
-	nion = get(&ndev, new_file);
-	if(nion != 0) { //new_file must not exist yet
+
+	//break up newfile into parent(directory) and child(proposed file)
+	parent = dirname(make_string(newfile));
+	child = basename(make_string(newfile));
+	
+	//get parent in memory
+	nino = getino(&dev, parent);
+	MINODE* nmip = iget(dev, nino);
+
+
+
+    	// Verify that newfiles parent directory exists
+    	if(!nmip) {
+		printf("Parent directory of new file does not exist!\n");
+		iput(omip);
+		iput(nmip);
 		return 0; //fail
 	}
-	if (ndev != odev){ //ndev of dirname(newfile) must be same as odev
+
+	if(!(nmip->INODE.i_mode == 0x4000)) { //parent directory must be dir
+		printf("Parent of newfile must be a directory!\n")
+		iput(omip);
+		iput(nmip);	
 		return 0; //fail
 	}
 	
-	//3.
-	//creat entry in new_parent DIR with same ino
-	//pmip -> minode of dirname(new_file);
-	enter_name(pmip, omip->ino, basename(new_file));
+
+	// Verify that child (proposed file) does not exist already
+    	if(getino(&dev, newfile) > 0) {
+		printf("Newfile already exists!\n");
+		iput(omip);
+		iput(nmip);
+		return 0;
+	}
 
 
-	//4.
-	omip->INODE.i_links_count++;
+    	// Verify that link is not being made across devices
+    	if(omip->device != nmip->device) {
+		printf("Cannot link across devices!\n")
+		iput(omip);
+		iput(nmip);
+		return 0; //fail
+	}
+
+	
+	//enter child
+	enter_name(nmip, omip->ino, child);
+
+ 	INODE* ip = &omip->inode;
+	ip->i_links_count++;
 	omip->dirty = 1;
+
+
 	iput(omip);
-	iput(pmip);
+	iput(nmip);
 
-
-return 1; // success
+	return 1; //success
 }
 
 
-int unlink(char* oldfile) {
+// unlink file
+// returns 1 for success, 0 for failure
+int unlink(char* filename) {
+
+	ino = getino(&dev, filename);
+	mip = iget(dev, ino);
+
+	//verify file exists
+	if(!mip) {
+		printf("File does not exist!\n");
+		iput(mip);
+		return 0;	
+	}
+
+	//check oldfile type (cannot be DIR)
+	if(mip->INODE.i_mode == 0x4000) { //file cannot be dir
+		printf("File cannot be directory!\n")
+		iput(mip);		
+		return 0; //fail
+	}
+
+ 	INODE* ip = &mip->inode;
+
+
+
+	
 
 return 1;
 }
