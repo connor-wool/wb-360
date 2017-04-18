@@ -86,7 +86,7 @@ int quit(){
 
 //variables used for command processing
 char *disk = "mydisk";
-char line[128], cmd[64], pathname[64];
+char line[128], cmd[64], pathname[64], pathname2[64];
 char buf[BLKSIZE];
 
 int main(int argc, char *argv[]){
@@ -149,17 +149,18 @@ int main(int argc, char *argv[]){
 		//clear both cmd and pathname buffer
 		cmd[0] = 0;
 		pathname[0] = 0;
+		pathname2[0] = 0;
 		printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|refcount|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|link|unlink|refcount|debug|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		if(DEBUGGING) printf("found input: `%s`\n", line);
 		if(strcmp(line, "") == 0) {
 			continue; }
 		else{
-			sscanf(line, "%s %s", cmd, pathname);
-			if(DEBUGGING) printf("split: cmd=`%s` pathname=`%s`\n", cmd, pathname);
+			sscanf(line, "%s %s %s", cmd, pathname, pathname2);
+			if(DEBUGGING) printf("split: cmd=`%s` pathname=`%s` pathname2='%s'\n",  cmd, pathname, pathname2);
 		}
 		
 		//execute the commands
@@ -193,6 +194,12 @@ int main(int argc, char *argv[]){
 			else
 				printf("!!! turning debug output on !!!\n");
 			toggle_debug();
+		}
+		if(strcmp(cmd, "link") == 0){
+			link(pathname, pathname2);
+		}		
+		if(strcmp(cmd, "unlink") == 0){
+			unlink(pathname);
 		}
 	}	
 }
