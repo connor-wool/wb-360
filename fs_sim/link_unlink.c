@@ -2,7 +2,9 @@
 link_unlink.c
 */
 
-#include <libgen.h>
+
+//#include <libgen.h>
+
 
 // link oldfile newfile
 //returns 1 if success, 0 if fail
@@ -139,31 +141,64 @@ int unlink(char* filename) {
 	MINODE* pmip = iget(dev, pino);
 	
 	// remove basename from parent DIR
+	printf("\n\n rm_child \n\n");
+	printf("parent: %s\n\n", parent);
+	printf("child: %s\n\n", child);
+
+/*
+
+seg faults on the line above, wont print 'child'??
+
+Do these two lines (with filename = file1):
+	parent = dirname(make_string(filename));
+	child = basename(make_string(filename));
+result in:
+	parent = .
+	child = file1
+
+
+??????????????
+*/
+
+
+
 	rm_child(pmip, child); //(MINDODE*, char*)
 	pmip->dirty = 1;
 	iput(pmip);
  
+ 	INODE* ip = &mip->INODE;
+
 	// decrement INODE's link_count
 	mip->INODE.i_links_count--;
-	if (mip->INODE.i_links_count > 0){
+	if (mip->INODE.i_links_count > 0){	// (SLINK file)
+		printf("\n\n SLINK \n\n");
 		mip->dirty = 1; 
 		iput(mip);
 	}
 
-/*
-	4. if (!SLINK file)
-// assume:SLINK file has no data block
-truncate(mip); // deallocate all data blocks
-deallocate INODE;
-iput(mip);
+	if (mip->INODE.i_links_count == 0){	// (!SLINK file)
+		printf("\n\n !SLINK \n\n");
+		truncate(mip);
+		idealloc(dev, ino);//deallocate INODE;
+		iput(mip);
+	}
 
-*/
+	return 1;
 
-return 1;
 }
 
 
+// deallocate all data blocks
+int truncate(MINODE* m){
+        // Deallocate its blocks
+        for(int b = 0; b < 12 && ip->i_block[b] != 0; b++) {
+		//int bdealloc(int dev, int blk_num)
+		bdealloc(dev, ip->i_block[b]);
+	}
 
+//in for loop, 12 = number of direct blocks?
+	return 1;
+}
 
 
 
