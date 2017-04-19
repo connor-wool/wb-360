@@ -58,7 +58,36 @@ return 1;
 }
 
 
-int readlink() {	//file, buffer
+// returns 0 if fail, returns the length of the target file
+int readlink(char* filename, char buffer[]) {	//file, buffer
+
+/*
+	#define BLKSIZE 1024
+	char buf[BLKSIZE];
+*/
+
+	// get file's INODE into memory
+	int ino = getino(&dev, filename);
+	MINODE* mip = iget(dev, ino);
+	INODE* ip = &mip->INODE;
+	
+	// verify it's a SLINK file
+	if(!S_ISLNK(ip->i_mode)){
+		printf("File is not a link file!\n");
+		return 0; //fail
+	}	
+
+	//copy target filename in INODE.i_block into a buffer;
+	strcpy(buffer, ip->i_block);
+	
+
+	//print something??
+	return strlen((char *)mip ->INODE.i_block);
+		
+	
+	
+
+
 	return 1;
 }
 
