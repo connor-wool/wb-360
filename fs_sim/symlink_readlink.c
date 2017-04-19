@@ -32,11 +32,6 @@ int symlink(char* oldfile, char* newfile) {
 
 	link_ip->i_mode = 0120777; // Link mode = 0120777
 
-	
-	//store old_file name in newfile's INODE.i_block[ ] area.
-	//strcpy((char*)(link_ip->i_block), "ab");
-	
-
 	//mark new_file's minode dirty;
 	link_mip->dirty = 1;
 	iput(link_mip);
