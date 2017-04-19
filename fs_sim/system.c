@@ -197,7 +197,8 @@ int main(int argc, char *argv[]){
 			toggle_debug();
 		}
 		if(strcmp(cmd, "link") == 0){
-			link(pathname, pathname2);
+			
+link(pathname, pathname2);
 		}		
 		if(strcmp(cmd, "unlink") == 0){
 			unlink(pathname);
@@ -206,8 +207,7 @@ int main(int argc, char *argv[]){
 			symlink(pathname, pathname2);
 		}
 		if(strcmp(cmd, "readlink") == 0){
-			readlink(pathname, buf);
-			//print buf here?
+			readlink(pathname);
 		}
 
 	}	

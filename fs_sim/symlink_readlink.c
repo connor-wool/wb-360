@@ -53,13 +53,11 @@ return 1;
 }
 
 
-// returns 0 if fail, returns the length of the target file
-int readlink(char* filename, char buffer[]) {	//file, buffer
+// returns the length of the target file
+int readlink(char* filename) {	//file, buffer
 
-/*
-	#define BLKSIZE 1024
-	char buf[BLKSIZE];
-*/
+	char buf[1024];
+	dev = running->cwd->dev;
 
 	// get file's INODE into memory
 	int ino = getino(&dev, filename);
@@ -73,17 +71,11 @@ int readlink(char* filename, char buffer[]) {	//file, buffer
 	}	
 
 	//copy target filename in INODE.i_block into a buffer;
-	strcpy(buffer, ip->i_block);
+	strcpy(buf, ip->i_block);
 	
+	//return strlen((char *)mip ->INODE.i_block);
+	return strlen((char *)mip->INODE.i_block);
 
-	//print something??
-	return strlen((char *)mip ->INODE.i_block);
-		
-	
-	
-
-
-	return 1;
 }
 
 
