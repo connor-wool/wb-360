@@ -16,6 +16,7 @@ The if none is provided, it defaults to "mydisk"
 #include "mkdir_creat.c"
 #include "rmdir.c"
 #include "link_unlink.c"
+#include "symlink_readlink.c"
 
 //globals
 /*
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]){
 		pathname2[0] = 0;
 		printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|link|unlink|refcount|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|link|unlink|symlink|refcount|debug|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		if(DEBUGGING) printf("found input: `%s`\n", line);
@@ -201,5 +202,9 @@ int main(int argc, char *argv[]){
 		if(strcmp(cmd, "unlink") == 0){
 			unlink(pathname);
 		}
+		if(strcmp(cmd, "symlink") == 0){
+			symlink(pathname, pathname2);
+		}
+
 	}	
 }
