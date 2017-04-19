@@ -4,6 +4,7 @@
 remove a directory, to start we don't care if it's empty
 ***************/
 
+//remove a childs reference from parent dir listing
 int rm_child(MINODE *parent, char *name){
 	char *cp; DIR *dp; DIR *prev; char buf[BLKSIZE];
 	int i;
@@ -33,7 +34,9 @@ int rm_child(MINODE *parent, char *name){
 	}		
 
 	//at this point, we have dp pointing to an entry of 'name'
-	
+	if(DEBUGGING) printf("rm_child: ino=%d name=%s\n", dp->inode, dp->name);	
+
+
 	//case: entry is last entry in block
 	if((cp + dp->rec_len) > &buf[BLKSIZE-1]){
 		if(DEBUGGING) printf("`%s` is last entry in block; rec_len=[%d]\n", dp->name, dp->rec_len);
