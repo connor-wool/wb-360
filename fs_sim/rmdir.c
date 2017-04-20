@@ -46,6 +46,7 @@ int rm_child(MINODE *parent, char *name){
 	
 	//case: entry is only entry in block
 	else if(dp->rec_len == BLKSIZE){
+		if(DEBUGGING) printf("`%s` is only entry in it's block\n", dp->name);
 		//deallocate data block
 		bdealloc(parent->dev, parent->INODE.i_block[i]);
 		parent->INODE.i_block[i] = 0;
@@ -57,6 +58,7 @@ int rm_child(MINODE *parent, char *name){
 
 	//case: entry has others following in block
 	else{
+		if(DEBUGGING) printf("`%s` has following entries in block\n", dp->name);
 		//create new pointers to walk to last entry in block
 		char *cp2 = cp;
 		DIR *dp2 = dp;
@@ -73,14 +75,18 @@ int rm_child(MINODE *parent, char *name){
 		cp2 = cp + dp->rec_len;
 		
 		//use cp(target pointer) and cp2(entry after target) to memcpy
+		printf("attempting to complete memcpy call\n");
 		memcpy(cp, cp2, &buf[BLKSIZE-1] - cp);
+		printf("completed memcpy call\n");
 		
 	}
 	
 	//write parent data blocks back to disk
 	//mark parent dirty
+	if(DEBUGGING) printf("rmchild: completed if/else block\n");
 	put_block(parent->dev, parent->INODE.i_block[i], buf);
 	parent->dirty = 1;
+	if(DEBUGGING) printf("completed rm_child subroutine\n");
 }
 
 int rm_dir(char *pathname){
