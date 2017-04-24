@@ -100,7 +100,7 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
 
     // Find process's first open fd 
     	int fd;
-	for(fd = 0; fd < 10; fd++)
+	for(fd = 0; fd < NFD; fd++)
     	{
         if(running->fd[fd] == NULL)
         	break;
@@ -114,7 +114,7 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
     	}
 
     	OPEN_FILE* fp = NULL;
-    	for(int i = 0; i < 100; i++)
+    	for(int i = 0; i < NOFT; i++)
     	{
         	fp = &OpenFileTable[i];
 
@@ -145,7 +145,7 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
         }
 
         // No more available space in the OpenFileTable
-        if(i == 99)
+        if(i == NOFT - 1)
         {
             fprintf(stderr, "open: failed to open '%s':"
                     " Too many files open\n", pathname);
@@ -164,7 +164,7 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
 
 int close(int fd) {
 	// Verify fd is within range.
-	if((fd < 0) || (fd >= 10)) {
+	if((fd < 0) || (fd >= NFD)) {
 		printf("File descriptor out of range!\n");
 		return 0;
 	}
@@ -172,7 +172,7 @@ int close(int fd) {
 	OPEN_FILE* fp = NULL;
 
 	//verify running->fd[fd] is pointing at a OFT entry
-	for(int i = 0; i < 100; i++) {
+	for(int i = 0; i < NOFT; i++) {
 		fp = &OpenFileTable[i];
 
 		if(fp->mip == running->fd[fd]->mip) { // running->fd[fd] is pointing at entry.
@@ -200,6 +200,20 @@ int close(int fd) {
 	return 1;
 }
 
+
+int lseek() {
+	//  From fd, find the OFT entry. 
+
+
+	//  change OFT entry's offset to position but make sure NOT to over run either end
+	//  of the file.
+
+
+	//return original position
+
+
+	return 1;
+}
 
 
 
