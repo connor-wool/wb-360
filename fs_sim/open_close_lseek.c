@@ -1,6 +1,5 @@
 /*
 open_close_lseek.c
-
 */
 
 
@@ -101,12 +100,12 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
 
     // Find process's first open fd 
     	int fd;
-	for(fd = 0; fd < NFD; fd++)
+	for(fd = 0; fd < 10; fd++)
     	{
         if(running->fd[fd] == NULL)
         	break;
 
-        	if(fd == NFD - 1)
+        	if(fd == 10 - 1)
         	{
 			printf("Failed to open\n");
             		iput(mip);
@@ -115,7 +114,7 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
     	}
 
     	OPEN_FILE* fp = NULL;
-    	for(int i = 0; i < NOFT; i++)
+    	for(int i = 0; i < 100; i++)
     	{
         	fp = &OpenFileTable[i];
 
@@ -146,7 +145,7 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
         }
 
         // No more available space in the OpenFileTable
-        if(i == NOFT - 1)
+        if(i == 99)
         {
             fprintf(stderr, "open: failed to open '%s':"
                     " Too many files open\n", pathname);
@@ -159,9 +158,52 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
     	mip->dirty = true;
 
 	return fd;
-
-
 }
+
+
+
+int close(int fd) {
+	// Verify fd is within range.
+	if((fd < 0) || (fd >= 10)) {
+		printf("File descriptor out of range!\n");
+		return 0;
+	}
+
+	OPEN_FILE* fp = NULL;
+
+	//verify running->fd[fd] is pointing at a OFT entry
+	for(int i = 0; i < 100; i++) {
+		fp = &OpenFileTable[i];
+
+		if(fp->mip == running->fd[fd]->mip) { // running->fd[fd] is pointing at entry.
+			break;
+		}
+		if(i == 99) {
+			printf("File not in OpenFileTable!\n");
+			return 0;
+		}
+    	}
+	
+	fp = running->fd[fd];
+	running->fd[fd] = NULL;
+	fp->refCount--;
+
+	if (oftp->refCount > 0){ 
+		return 0;
+	}
+
+
+	// last user of this OFT entry ==> dispose of the Minode[]
+	mip = oftp->inodeptr;
+	iput(mip);
+
+	return 1;
+}
+
+
+
+
+
 
 
 
