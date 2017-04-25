@@ -1,5 +1,9 @@
 To do for wednesday's demo:
 
-- finish rmdir?
-- finish unlink (bugs)
-- finish readlink (bugs?)
+[x] Level 1
+[ ] Level 2
+	( ) open
+	( ) close
+	( ) lseek
+	( ) read
+	( ) write
