@@ -30,7 +30,7 @@ int symlink(char* oldfile, char* newfile) {
 	MINODE* link_mip = iget(dev, lino);
 	INODE* link_ip = &link_mip->INODE;
 
-	link_ip->i_mode = 0120777; // Link mode = 0120777
+	link_ip->i_mode = 0120777; // LINK_MODE = 0120777
 
 	//mark new_file's minode dirty;
 	link_mip->dirty = 1;
@@ -54,28 +54,32 @@ return 1;
 
 
 // returns the length of the target file
-int readlink(char* filename) {	//file, buffer
+char* readlink(char* filename) {	//file, buffer
 
-	char buf[1024];
 	dev = running->cwd->dev;
+	char* result = NULL;
 
 	// get file's INODE into memory
 	int ino = getino(&dev, filename);
 	MINODE* mip = iget(dev, ino);
 	INODE* ip = &mip->INODE;
 	
+
 	// verify it's a SLINK file
-	if(!S_ISLNK(ip->i_mode)){
+	//if(!S_ISLNK(ip->i_mode)){
+	if(ip->i_mode != 0120777){
 		printf("File is not a link file!\n");
 		return 0; //fail
-	}	
+	}
 
-	//copy target filename in INODE.i_block into a buffer;
-	strcpy(buf, ip->i_block);
-	
-	//return strlen((char *)mip ->INODE.i_block);
-	return strlen((char *)mip->INODE.i_block);
 
+	char* contents = (char*)(ip->i_block);
+	result = (char*)malloc((strlen(contents) + 1) * sizeof(char));
+	strcpy(result, contents);
+
+	iput(mip);
+
+	return result;
 }
 
 
