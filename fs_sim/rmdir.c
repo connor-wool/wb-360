@@ -4,7 +4,7 @@
 remove a directory, to start we don't care if it's empty
 ***************/
 
-
+/*
 
 
 //---------- MATT'S WORK BELOW ------------------------------------
@@ -93,7 +93,7 @@ int rm_child(MINODE* parent, char* name) {
 
 
 
-
+*/
 
 
 
@@ -116,7 +116,8 @@ int rm_child(MINODE* parent, char* name) {
 //remove a childs reference from parent dir listing
 int rm_child(MINODE *parent, char *name){
 	char *cp; DIR *dp; DIR *prev; char buf[BLKSIZE];
-	int i;
+	int i = -1;
+	int data_block_num = -1;
 
 	//search parent data blocks for entry of name
 	for(int i = 0; i < 12; i++){
@@ -131,6 +132,7 @@ int rm_child(MINODE *parent, char *name){
 		while(cp < &buf[BLKSIZE-1]){
 			if(strcmp(dp->name, name) == 0){
 				if(DEBUGGING) printf("found `%s` as ino=[%d]\n", dp->name, dp->inode);
+				data_block_num = parent->INODE.i_block[i];
 				break;
 			}
 			prev = dp;
@@ -193,7 +195,8 @@ int rm_child(MINODE *parent, char *name){
 	//write parent data blocks back to disk
 	//mark parent dirty
 	if(DEBUGGING) printf("rmchild: completed if/else block\n");
-	put_block(parent->dev, parent->INODE.i_block[i], buf);
+	if(DEBUGGING) printf("dev=%d block=%d\n", parent->dev, data_block_num);
+	put_block(parent->dev, data_block_num, buf);
 	parent->dirty = 1;
 	if(DEBUGGING) printf("completed rm_child subroutine\n");
 }
