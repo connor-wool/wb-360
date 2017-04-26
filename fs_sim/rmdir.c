@@ -4,113 +4,6 @@
 remove a directory, to start we don't care if it's empty
 ***************/
 
-/*
-
-
-//---------- MATT'S WORK BELOW ------------------------------------
-
-
-//http://www.eecs.wsu.edu/~cs360/rmdir.html
-
-
-//returns 1 on success, 0 on failure
-int rmdir(char* pathname) {
-	
-	char* parent, child;
-	int uid = running->uid;
-	int dev = running->cwd->dev; 	
-	
-	int ino = getino(&dev, pathname); //get inumber of pathname
-	MINODE* mip = iget(dev, ino);	//get its minode[ ] pointer
-
-	//check ownership
-        if(uid != SUPER_USER || uid != mip->INODE.i_uid) {
-		printf("Permission Denied!\n");
-		return 0;
-	}
-
-	//check DIR type
-        if(!S_ISDIR(mip->INODE.i_mode)) {
-		printf("Not a directory!\n");
-		iput(mip);            
-		return 0;
-        }
-        // check if not busy
-        if(mip->refCount > 1) {
-		printf("File is busy\n");
-		iput(mip);
-		return 0;
-	}
-
-	// check if empty dir
-	else if(!isEmptyDir(mip)) {
-		printf("Directory Must be empty!\n");
-		return 0;
-	}
-
-	// Deallocate its block and inode
-	for (i=0; i<12; i++){
-		if (mip->INODE.i_block[i]==0)
-			continue;
-		bdealloc(mip->dev, mip->INODE.i_block[i]);
-	}
-	idealloc(mip->dev, mip->ino);
-	iput(mip); // clears mip->refCount = 0
-
-
-	child = basename(make_string(filename));
-	parent = dirname(make_string(filename));
-
-	// get parent DIR's ino and Minode (pointed by pip)
-	int pino = getino(&dev, parent); 
-	MINODE* pmip = iget(dev, ino);
-	
-	INODE* pip = iget(pmip->dev, pino);
-	
-	rm_child(pip, child);
-	
-        pip->i_links_count--;
-        pip->i_atime = time(0L);
-        ip->i_mtime = time(0L);
-	pmip->dirty = 1;
-	iput(pmip);
-	
-	return 1; //success
-}
-
-int rm_child(MINODE* parent, char* name) {
-	
-	//Search parent INODE's data block(s) for the entry of name
-		
-	
-
-	return 1; //success
-}
-
-
-
-
-
-
-
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-//---------- CONNOR'S WORK BELOW ------------------------------------
-
-
-
 
 //remove a childs reference from parent dir listing
 int rm_child(MINODE *parent, char *name){
@@ -249,7 +142,7 @@ int rm_dir(char *pathname){
 		printf("!!! Error: this system does not allow deletion of root\n");
 	}
 
-	//TODO: check ownership
+	// check ownership
 	int uid = running->uid;
         if(uid != SUPER_USER || uid != mip->INODE.i_uid) {
 		printf("Permission Denied!\n");
@@ -258,7 +151,7 @@ int rm_dir(char *pathname){
 		return 0; //fail
 	}
 
-	//TODO:Check that the inode points to a dir
+	// Check that the inode points to a dir
         if(!S_ISDIR(mip->INODE.i_mode)) {
 		printf("Not a directory!\n");
 		iput(mip);
@@ -266,7 +159,7 @@ int rm_dir(char *pathname){
 		return 0;
         }
 
-	//TODO:Check that dir is not busy (refcount = 0)
+	// Check that dir is not busy (refcount = 0)
         if(mip->refCount > 1) {
 		printf("File is busy\n");
 		iput(mip);
@@ -274,7 +167,7 @@ int rm_dir(char *pathname){
 		return 0;
 	}
 
-	//TODO: check that dir is empty
+	// check that dir is empty
 	if(mip->INODE.i_links_count > 2) {
 		printf("Directory Must be empty!\n");
 		iput(mip);
