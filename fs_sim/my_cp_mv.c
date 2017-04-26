@@ -2,24 +2,23 @@
 my_cp_mv.c
 */
 
-int cp(char* source, char* destination){
-	int fd, gd;
-	
+int my_cp(char* source, char* destination){
+	int fd, gd, n;
+	char buf[1024];
+
 	fd = my_open(source, "R");	//open src for READ
 	
 	my_touch(destination);
 	gd = my_open(destination, "W"); //open dst for WR|CREAT
-	
-	while( n=read(fd, buf[], BLKSIZE) ){
+	while( n=read(fd, buf, BLKSIZE) ){
 		write(gd, buf, n);  // notice the n in write()
 	}	
-
 	my_close(fd);
 	my_close(gd);
 	return 1;
 }
 
-int mv(char* source, char* destination){
+int my_mv(char* source, char* destination){
 	int dev = running->cwd->dev;
 	int ino = getino(&dev, source);
 	if(ino == 0){

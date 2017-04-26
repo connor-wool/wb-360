@@ -21,6 +21,7 @@ The if none is provided, it defaults to "mydisk"
 #include "open_close_lseek.c"
 #include "my_read.c"
 #include "my_write.c"
+#include "my_cp_mv.c"
 
 //globals
 /*
@@ -159,7 +160,7 @@ int main(int argc, char *argv[]){
 		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
 
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|read|write|cat|refcount|pfd|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|read|write|cat|cp|mv|refcount|pfd|debug|quit] ");
 
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
@@ -239,6 +240,12 @@ int main(int argc, char *argv[]){
 		}
 		if(strcmp(cmd, "write") == 0){
 			my_write(pathname, pathname2);
+		}
+		if(strcmp(cmd, "cp") == 0){
+			my_cp(pathname, pathname2);
+		}
+		if(strcmp(cmd, "mv") == 0){
+			my_mv(pathname, pathname2);
 		}
 
 	}	
