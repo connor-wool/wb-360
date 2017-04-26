@@ -158,7 +158,7 @@ int main(int argc, char *argv[]){
 		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
 
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|refcount|printoft|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|refcount|pfd|debug|quit] ");
 
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
@@ -231,7 +231,7 @@ link(pathname, pathname2);
 			int param = atoi(pathname);
 			close(param);
 		}
-		if(strcmp(cmd, "printoft") == 0){
+		if(strcmp(cmd, "pfd") == 0){
 			print_running_fd();
 		}
 
