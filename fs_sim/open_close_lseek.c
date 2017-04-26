@@ -170,41 +170,38 @@ int my_open(char* file, char* given_mode) {
 
 
 // return 1 on successs, 0 on failure
-int my_close(int fd) {
+int my_close(int fd_val) {
+
 	// Verify fd is within range.
 	if((fd < 0) || (fd >= NFD)) {
 		printf("File descriptor out of range!\n");
 		return 0;
 	}
 
-	OFT* fp;
+	//make a pointer to reference the OFT object for this file
+	OFT *ofd;
+	ofd = running->fd[fd_val];
+
 	//verify running->fd[fd] is pointing at a OFT entry
-	for(int i = 0; i < NOFT; i++) {
-	fp = &running->fd[i];
+	if(ofd == 0 || ofd->refCount < 1){
+		printf("no such file descriptor to close!\n");
+		return 1;
+	}	
 
-		if(fp->mptr == running->fd[fd]->mptr) { // running->fd[fd] is pointing at entry.
-			break;
-		}
-		if(i == NOFT - 1) {
-			printf("File not in OpenFileTable!\n");
-			return 0;
-		}
-    	}
-	
-
-	// close file
-	fp = running->fd[fd];
-	running->fd[fd] = 0;
-	fp->refCount--;
-
-	if (fp->refCount > 0){ 
-		return 1; // file still has another instance open, but success
+	//if the refCount is greater than 1, just decrement
+	if(ofd->refCount > 1){
+		ofd->refCount--;
+		return 0;
 	}
 
-	// last user of this OFT entry ==> dispose of the Minode[]
-	MINODE* mip = fp->mptr;
-	iput(mip);
-	return 1;
+	//at this point refcount is 1 and we want to close the file.
+	//push the minode back to the disk
+	iput(ofd->mptr);
+
+	//remove the entry from the OFT listing
+	free(ofd);
+	running->fd[fd_val] = 0;
+	return 0;
 }
 
 
