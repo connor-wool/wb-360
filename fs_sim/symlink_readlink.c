@@ -27,9 +27,18 @@ int symlink(char* oldfile, char* newfile) {
 		return 0;
 	}
 
-	//create newfile; change new_file to SLINK type;
-	creat_file(newfile); //creat newfile
-	int lino = getino(&dev, newfile);
+	//create newfile; change new_file to SLINK type;	
+	char new[500] = "";
+	char* plus = "->";
+	printf("\n\n1\n\n");
+	strcat(new, oldfile);
+	strcat(new, plus); 
+	strcat(new, newfile);
+
+	printf("\n\nYUP: %s\n\n", new);	
+	
+	creat_file(new); //creat newfile
+	int lino = getino(&dev, new);
 	MINODE* link_mip = iget(dev, lino);
 	INODE* link_ip = &link_mip->INODE;
 	

@@ -149,6 +149,8 @@ int unlink(char* filename) {
 	// remove basename from parent DIR
 	printf("\n\n rm_child \n\n");
 	rm_child(pmip, child);
+	
+	pmip->INODE.i_links_count--;
 
 	iput(mip);
 	iput(pmip);

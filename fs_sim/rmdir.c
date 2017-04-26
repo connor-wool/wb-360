@@ -56,12 +56,43 @@ int rm_child(MINODE *parent, char *name){
 		bdealloc(parent->dev, parent->INODE.i_block[i]);
 		parent->INODE.i_block[i] = 0;
 
+		printf("\n\n\n\nTHIS IS IT\n\n\n\n\n\n");
+
 		//fix parent data block numbers so all non-zero are contiguous
 			//TODO: check this, although it should be done by default
 		//change parent filesize
-		
+//---------------------------------------------------------------------------	
+
 		// move parent's NONZERO blocks upward so 
-		// that there is no HOLEs in parent's data block numbers	
+		// that there is no HOLEs in parent's data block numbers
+
+		int removed_length, total_length = dp->rec_len;
+		char* cNext = cp + dp->rec_len;
+		int next_length;
+		DIR* dNext = (DIR *)cNext;
+		while(total_length + dNext->rec_len < BLKSIZE)
+		{
+			total_length += dNext->rec_len;
+			next_length = dNext->rec_len;
+			dp->inode = dNext->inode;
+			dp->rec_len = dNext->rec_len;
+			dp->name_len = dNext->name_len;
+			strncpy(dp->name, dNext->name, dNext->name_len);
+			cNext += next_length;
+			dNext = (DIR *)cNext;
+			cp+= next_length;
+			dp = (DIR *)cp;
+		}
+		dp->inode = dNext->inode;
+		// add removed rec_len to the last entry of the block
+		dp->rec_len = dNext->rec_len + removed_length;
+		dp->name_len = dNext->name_len;
+		strncpy(dp->name, dNext->name, dNext->name_len);
+
+
+
+
+//---------------------------------------------------------------------------	
 		parent->INODE.i_size -= BLKSIZE;
 	}
 
@@ -129,12 +160,28 @@ int rm_dir(char *pathname){
 		// get inumber/MINODE* of pathname
 	ino = getino(&dev, pathname);
 	mip = iget(dev, ino);
+	
+	//if parent does not exist (special case)
+	if(!mip){
+		printf("Directory does not exist!\n");
+		return 0;
+	}	
+
+
 	if(DEBUGGING) printf("rmdir: dir to delete is ino=[%d]\n", mip->ino);
 
 	// get a reference to the parent of this directory
 		// get parent DIR's ino and Minode for later
 	pino = search(mip, "..");
 	pmip = iget(dev, pino);
+
+	//if parent does not exist (special case)
+	if(!pmip){
+		printf("Directory does not exist!\n");
+		iput(mip);
+		return 0;
+	}	
+
 	if(DEBUGGING) printf("rmdir: parent of deleted is ino=[%d]\n", pmip->ino);
 
 	// check if root
