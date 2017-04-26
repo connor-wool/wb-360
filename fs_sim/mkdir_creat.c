@@ -13,6 +13,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
     DIR *dp;
     char *cp;
 
+	// for each data block of parent, if i_block[index] == 0, break
     printf("search for last data block:\n");
     i = 1;
     for(int i = 1; i < 12; i++){
@@ -22,7 +23,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
         }
     }
     
-    //read last data block of parent into buf
+    	//get last data block of parent into buf
     char buf[BLKSIZE];
     printf("reading in i_block[%d]\n", i-1);
     get_block(pip->dev, pip->INODE.i_block[i-1], buf);
@@ -30,6 +31,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
     dp = (DIR*)buf;
     cp = buf;
 
+	// Step to the last entry in a data block
     printf("searching for last dir entry\n");
     while(cp + dp->rec_len < buf + BLKSIZE && dp->rec_len > 0){
         printf("moving past %s\n", dp->name);
@@ -38,18 +40,24 @@ int enter_name(MINODE *pip, int myino, char *myname){
     }
 
     //now we should be looking at the last inode;
+	// dp NOW points at last entry in block
     printf("last dir entry is: [%s]?\n", dp->name);
     printf("last dir size is: [%d] bytes\n",dp->rec_len);
 
+	// calculate ideal length
     int ideal_length = 4*((8 + dp->name_len + 3)/4);
     printf("new ideal length is: [%d]\n", ideal_length);
 
+	// calculate remaining space
     int remain = dp->rec_len - ideal_length;
     printf("there is [%d] bytes remaining in block\n", remain);
 
+	// calcuate how many bytes are needed to enter name
     int need_length = 4*((8 + strlen(myname) + 3)/4);
     printf("we need [%d] bytes to enter new inode\n", need_length);
 
+	//there is enough space, so enter the new entry as the LAST entry 
+	//and trim the previous entry to its IDEAL_LENGTH; 
     if(remain >= need_length){
         printf("there is enough space, creating entry\n");
 	dp->rec_len = ideal_length;
@@ -60,8 +68,12 @@ int enter_name(MINODE *pip, int myino, char *myname){
         dp->name_len = strlen(myname);
         strcpy(dp->name, myname);
 	printf("final entry now: [ino=%d rlen=%d n=%s]\n", dp->inode, dp->rec_len, dp->name);
-	put_block(pip->dev, pip->INODE.i_block[i-1], buf);
+	put_block(pip->dev, pip->INODE.i_block[i-1], buf); // Write data block to disk
     }    
+
+	// not enough space for entry on this block, so Allocate a new data block
+	// and Enter new entry as the first entry in the new data block 
+	// with rec_len=BLKSIZE 
     else{
 	printf("not enough space, making new data block\n");
         //we need to allocate a new data block for this entry
@@ -74,7 +86,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
         dp->rec_len = BLKSIZE;
         dp->name_len = strlen(myname);
         strcpy(dp->name, myname);
-	put_block(pip->dev, bno, buf);
+	put_block(pip->dev, bno, buf); // Write data block to disk
     }
 }
 
@@ -84,6 +96,7 @@ int enter_name(MINODE *pip, int myino, char *myname){
 
 int mymkdir(MINODE *pip, char *name){
     //pip points to parent minode, name is string
+
     //allocate an inode and a disk block for directory
     int ino = ialloc(dev);
     int bno = balloc(dev);
@@ -109,8 +122,10 @@ int mymkdir(MINODE *pip, char *name){
 
     print_minode(mip);
 
-    iput(mip);
+    iput(mip); //write inode to disk
 
+
+	// create data block for new DIR containing . and .. entries
     char buf[BLKSIZE];
     if(DEBUGGING) printf("reading in bno=[%d]\n", bno);
     get_block(dev, bno, buf);
@@ -127,9 +142,10 @@ int mymkdir(MINODE *pip, char *name){
     dp->rec_len = 1012;
     dp->name_len = 2;
     strcpy(dp->name, "..");
-    put_block(dev, bno, buf);
+    put_block(dev, bno, buf); // write buf[ ] to the disk block bno
     
-    get_block(dev, bno, buf);
+	//print dir entires for debugging purposes
+    get_block(dev, bno, buf); 
     cp = buf;
 	dp = (DIR*)cp;
 	while(cp < &buf[BLKSIZE-1]){
@@ -137,7 +153,7 @@ int mymkdir(MINODE *pip, char *name){
 		if(DEBUGGING) printf("dir entry [ino=%d rlen=%d name=`%s`]\n", dp->inode, dp->rec_len, dp->name);
 		cp += dp->rec_len;
 	}
-
+	//enter name into parent's directory by
     enter_name(pip, ino, name);
 }
 
@@ -155,7 +171,8 @@ int make_dir(char *pathname){
         mip = running->cwd;
         dev = running->cwd->dev;
     }
-
+	
+	//separate pathname into parent and child
     parent = dirname(make_string(pathname));
     child = basename(make_string(pathname));
 
@@ -185,7 +202,7 @@ int make_dir(char *pathname){
     //touch atime and mark dirty
     pip->dirty = 1;
     pip->INODE.i_links_count++;
-    //how to touch atime?
+    pip->INODE.i_atime = time(0L);
     iput(pip);
 }
 
@@ -195,6 +212,7 @@ int make_dir(char *pathname){
 
 int mycreat(MINODE *pip, char *name){
     //pip points to parent minode, name is string
+    
     //allocate an inode
     int ino = ialloc(dev);
     if(DEBUGGING) printf("make new file using ino=[%d]\n", ino);
@@ -204,11 +222,11 @@ int mycreat(MINODE *pip, char *name){
 
     //write to mip->INODE to make it a file
     INODE *ip = &mip->INODE;
-    ip->i_mode = 0x81A4;
-    ip->i_uid = running->uid;
+    ip->i_mode = 0x81A4;	// regular file
+    ip->i_uid = running->uid;   // set permissions
     //ip->i_gid = running->gid;
-    ip->i_size = 0;
-    ip->i_links_count = 1;
+    ip->i_size = 0;		// no data blocks so size = 0
+    ip->i_links_count = 1;	
     ip->i_atime = ip->i_ctime = ip->i_mtime = time(0L);
     ip->i_blocks = 0;
     for(int i = 0; i < 15; i++){
@@ -218,7 +236,7 @@ int mycreat(MINODE *pip, char *name){
 
     if(DEBUGGING) print_minode(mip);
 
-    iput(mip);
+    iput(mip); // write inode to disk
 
     //put this file's name into it's parent's dir record
     enter_name(pip, ino, name);
@@ -239,6 +257,7 @@ int creat_file(char *pathname){
         dev = running->cwd->dev;
     }
 
+	// separate pathname into parent and child
     parent = dirname(make_string(pathname));
     child = basename(make_string(pathname));
 
@@ -248,7 +267,7 @@ int creat_file(char *pathname){
     pino = getino(&dev, parent);
     pip = iget(dev, pino);
 
-    //verify parent inode is dir
+    //verify that parent inode is dir
     if(DEBUGGING) printf("creat_file: parent i_mode=[%x]\n", pip->INODE.i_mode);
 
     if( !(pip->INODE.i_mode & 0x4000)){
@@ -267,7 +286,7 @@ int creat_file(char *pathname){
 
     //touch atime and mark dirty
     pip->dirty = 1;
-    //how to touch atime?
-    iput(pip);
+    pip->INODE.i_atime = time(0L);
+    iput(pip); //write inode to disk
 }
 
