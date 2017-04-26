@@ -43,16 +43,53 @@ int my_touch(char *path){
 }
 
 int my_chmod(char *new_val, char *path){
-	int ino, owner, group, others;
-	char own_s[2] = {0};
-	char gp_s[2] = {0};
-	char otr_s[2] = {0};
+	int ino = 0;
+	int owner = 0;
+	int group = 0;
+	int others = 0;
 	MINODE *mip;
 	
-	if(DEBUGGING) printf("chmod: val=%s\n");
-	if(DEBUGGING) printf("chmod: path=%s\n");
+	char copy[10] = {0};
+	strcpy(copy, new_val);
+	
+	if(DEBUGGING) printf("copy: `%s`\n", copy);
+	if(DEBUGGING) printf("chmod: val=%s\n",new_val);
+	if(DEBUGGING) printf("chmod: path=%s\n", path);
+	
+	//parse values of new mode	
+	char *copy_p = &copy[2];
+	others = atoi(copy_p);
+	copy[2] = 0;
+	copy_p--;
+	group = atoi(copy_p);
+	copy[1] = 0;
+	copy_p--;
+	owner = atoi(copy_p);
 
-	//parse values of new mode
-	own_s[0] = new_val[0];
-	gp_s[0] = new_val[1];
+	if(DEBUGGING) printf("owner=%d group=%d others=%d\n", owner, group, others);
+
+	//get reference to minode
+	ino = getino(&dev, path);
+	mip = iget(dev, ino);
+
+	//update permissions for inode with new values
+	INODE *ip = &mip->INODE;
+	if(DEBUGGING) printf("mode before or-flash: [%x]\n", ip->i_mode);
+	//first flash all 0 permissions into the mode using bitwise or to preserve filetype
+	ip->i_mode = ip->i_mode & 0xfe00;
+	if(DEBUGGING) printf("mode after or-flash: [%x]\n", ip->i_mode);
+	
+	ip->i_mode = ip->i_mode | (owner << 6);
+	if(DEBUGGING) printf("mode after and-flash owner: [%x]\n", ip->i_mode);
+	
+	ip->i_mode = ip->i_mode | (group << 3);
+	if(DEBUGGING) printf("mode after and-flash group: [%x]\n", ip->i_mode);
+	
+	ip->i_mode = ip->i_mode | (others << 0);
+	if(DEBUGGING) printf("mode after and-flash others: [%x]\n", ip->i_mode);
+
+	//mark mip as dirty
+	mip->dirty = 1;
+	//write mip back
+	iput(mip);
 }

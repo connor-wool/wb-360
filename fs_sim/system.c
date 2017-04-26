@@ -213,6 +213,9 @@ link(pathname, pathname2);
 		if(strcmp(cmd, "touch") == 0){
 			my_touch(pathname);
 		}
+		if(strcmp(cmd, "chmod") == 0){
+			my_chmod(pathname, pathname2);
+		}
 
 	}	
 }
