@@ -287,6 +287,7 @@ int creat_file(char *pathname){
     //touch atime and mark dirty
     pip->dirty = 1;
     pip->INODE.i_atime = time(0L);
+    pip->INODE.i_links_count++;
     iput(pip); //write inode to disk
 }
 
