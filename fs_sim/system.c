@@ -18,6 +18,8 @@ The if none is provided, it defaults to "mydisk"
 #include "link_unlink.c"
 #include "symlink_readlink.c"
 #include "touch_chmod.c"
+#include "open_close_lseek.c"
+
 
 //globals
 /*
@@ -113,6 +115,7 @@ int main(int argc, char *argv[]){
 	sp = (SUPER*)buf;
 	if(sp->s_magic != 0xef53){
 		printf("main: ERROR! ext2 filesystem not found on disk\n");
+		printf("main: s_magic found on disk was [%x]\n", sp->s_magic);
 		printf("main: exiting program.\n");
 		exit(1);
 	}
@@ -154,7 +157,9 @@ int main(int argc, char *argv[]){
 		pathname2[0] = 0;
 		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|refcount|debug|quit] ");
+
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|refcount|debug|quit] ");
+
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		if(DEBUGGING) printf("found input: `%s`\n", line);
@@ -210,11 +215,21 @@ link(pathname, pathname2);
 		if(strcmp(cmd, "readlink") == 0){
 			readlink(pathname);
 		}
+
 		if(strcmp(cmd, "touch") == 0){
 			my_touch(pathname);
 		}
 		if(strcmp(cmd, "chmod") == 0){
 			my_chmod(pathname, pathname2);
+		}
+
+
+		if(strcmp(cmd, "open") == 0){
+			my_open(pathname, pathname2);
+		}
+		if(strcmp(cmd, "close") == 0){
+			int param = atoi(pathname);
+			close(param);
 		}
 
 	}	

@@ -24,8 +24,14 @@ DIR   *dp;
 
 #define BLKSIZE 1024
 #define NMINODE 100
-#define NFD     16
+#define NFD     10
+#define NOFT	50
 #define NPROC   2
+
+#define DIR_MODE          0040777 
+#define LINK_MODE	  0120777
+#define SUPER_MAGIC       0xEF53
+#define SUPER_USER        0
 
 typedef struct minode{
 	INODE INODE;

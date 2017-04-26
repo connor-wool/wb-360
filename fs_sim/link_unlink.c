@@ -40,7 +40,8 @@ int link(char* oldfile, char* newfile)
 	parent = dirname(make_string(newfile));
 	child = basename(make_string(newfile));
 
-
+	printf("parent: %s\n\n", parent);
+	printf("child: %s\n\n", child);
 
     // Get parent in memory
     int nino = getino(&dev, parent);
@@ -101,11 +102,14 @@ int link(char* oldfile, char* newfile)
 
 
 
-// unlink file
+// unlink file. Unlink command can also be used to delete any regular file
 // returns 1 for success, 0 for failure
 int unlink(char* filename) {
-
-	char* parent, child;
+	
+	int dev = running->cwd->dev;	
+	char* parent;
+	char* child = "init!";
+	//No idea why... but initializing child and not parent makes it work...
 
 	int ino = getino(&dev, filename);
 	MINODE* mip = iget(dev, ino);
@@ -118,50 +122,68 @@ int unlink(char* filename) {
 	}
 
 	//check file type (cannot be DIR)
-	if(mip->INODE.i_mode == 0x4000) { //file cannot be dir
+	if(S_ISDIR(mip->INODE.i_mode)){ //file cannot be dir
 		printf("File cannot be directory!\n");
 		iput(mip);		
 		return 0; //fail
 	}
-/*
+
+	INODE* ip = &mip->INODE;
+	
+	// Deallocate its blocks
+	for(int b = 0; b < 12 && ip->i_block[b] != 0; b++)
+		bdealloc(dev, ip->i_block[b]);
+	
+	// Deallocate its inode
+	idealloc(dev, ino);
+
 	//split filename into parent and child
-	parent = dirname(make_string(filename));
 	child = basename(make_string(filename));
-*/
+	parent = dirname(make_string(filename));
+
+
+	//get parent in memory
+	int pino = getino(&dev, parent);
+	MINODE* pmip = iget(dev, pino);
+					
+	// remove basename from parent DIR
+	printf("\n\n rm_child \n\n");
+	rm_child(pmip, child);
+	
+	pmip->INODE.i_links_count--;
+
+	iput(mip);
+	iput(pmip);
+	return 1;
+}
 
 
 
 
+
+
+
+
+//------ below is old code... unused ----------------------------
+
+
+
+/*
 //-------------------------------------------------------
 
 
 	//get parent in memory
 	int pino = getino(&dev, parent);
 	MINODE* pmip = iget(dev, pino);
-	
-	// remove basename from parent DIR
-	printf("\n\n rm_child \n\n");
+
+	printf("\nfilname: %s\n\n", filename);
 	printf("parent: %s\n\n", parent);
 	printf("child: %s\n\n", child);
 
-/*
-
-seg faults on the line above, wont print 'child'??
-
-Do these two lines (with filename = file1):
-	parent = dirname(make_string(filename));
-	child = basename(make_string(filename));
-result in:
-	parent = .
-	child = file1
-
-
-??????????????
-*/
-
-
-
-	rm_child(pmip, child); //(MINDODE*, char*)
+	// remove basename from parent DIR
+	printf("\n\n rm_child \n\n");
+	rm_child(pmip, child);
+	
 	pmip->dirty = 1;
 	iput(pmip);
  
@@ -200,8 +222,6 @@ int truncate(MINODE* m){
 }
 
 
-
-
-
+*/
 
 

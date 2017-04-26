@@ -3,15 +3,6 @@ open_close_lseek.c
 */
 
 
-// OpenFileTable
-typedef struct open_file 
-{
-    int     mode;
-    int     refCount;
-    int     offset;
-    MINODE* mip;
-}OPEN_FILE;
-
 /*
 open algorithms:
 http://www.eecs.wsu.edu/~cs360/open_close.html
@@ -20,10 +11,14 @@ page 332 in book
 */
 
 
-//return 0 if fail. mode = 0|1|2|3 for R|W|RW|APPEND
-int open(char* file, char* given_mode) {
-	
-	//set mode from the given user input
+//return 0 if fail, return i (running->fd[i]) if success
+//mode = 0|1|2|3 or R|W|RW|APPEND
+int my_open(char* file, char* given_mode) {
+	if(!given_mode){
+		printf("No mode given!\n");
+		return 0;
+	}
+	//set mode from the given user input (accepts 0-3 or R-APPEND)
 	int mode = -1;
 	if(strcmp(given_mode, "R") == 0)
 		mode = 0;
@@ -34,10 +29,14 @@ int open(char* file, char* given_mode) {
     	else if(strcmp(given_mode, "APPEND") == 0)
 		mode = 3;
 	else {
-		printf("Not a valid mode\n");
-		return 0;
+		mode = given_mode;
 	}
-	if(pathname[0] == '/')
+	if (mode != (0 | 1 | 2 | 3)) {
+		printf("Not a valid mode!\n");
+		return 0;
+	}	
+
+	if(file[0] == '/')
         	dev = root->dev;
     	else
         	dev = running->cwd->dev;
@@ -45,35 +44,48 @@ int open(char* file, char* given_mode) {
 	//get pathname's inumber, Minode pointer
 	int ino = getino(&dev, file);
 	MINODE* mip = iget(dev,ino);  
+	INODE* ip = &mip->INODE; 
 // dev may change with mounting
 // so this will need updating for level3
 
+	// verify file exists
     	if(!mip)
     	{
 		printf("File does not exist!\n");
 		return 0;
     	}
-    	// Verify it is a regular file
+
+    	// Verify file is a regular file
     	if(!S_ISREG(mip->INODE.i_mode))
     	{
 		printf("File is not a regular file!\n");
         	iput(mip);
-        	return 0;
-	}		
-	
-/*
-Check whether the file is ALREADY opened with INCOMPATIBLE mode:
-           If it's already opened for W, RW, APPEND : reject.
-           (that is, only multiple R are OK)
-*/
+        	return 0; //fail
+	}
 
-//how to do this^^^^ ?????
+
+	//Check whether the file is ALREADY opened with INCOMPATIBLE mode
+	OFT* fp = NULL;
+	for(int i = 0; i < NOFT; i++){
+	fp = running->fd[i];
+		
+        	if(mode != 0 
+			&& fp->refCount > 0
+                	&& fp->mptr == mip
+                	&& fp->mode != 0)
+		{
+			printf("File is already open in an incompatible mode!\n");
+            		iput(mip);
+            		return 0; //fail
+		}
+	}
+
 
 	//allocate a free open file table pointer
-	OPEN_FILE* oftp;
+	OFT* oftp;
 	oftp->mode = mode;      // mode = 0|1|2|3 for R|W|RW|APPEND 
 	oftp->refCount = 1;
-	oftp->mip = mip;  // point at the file's minode[]
+	oftp->mptr = mip;  // point at the file's minode[]
 
 	switch(mode){
 		case 0 : 
@@ -91,117 +103,81 @@ Check whether the file is ALREADY opened with INCOMPATIBLE mode:
 			break;
 		default: 
 			printf("invalid mode\n");
-               		return(-1);
+               		return(0);
       	}
 
-   // find the SMALLEST i in running PROC's fd[ ] such that fd[i] is NULL
-   // Let running->fd[i] point at the OFT entry
-	
-
-    // Find process's first open fd 
+    	// find the SMALLEST i in running PROC's fd[ ] such that fd[i] is NULL
     	int fd;
-	for(fd = 0; fd < NFD; fd++)
-    	{
-        if(running->fd[fd] == NULL)
-        	break;
+	for(fd = 0; fd < NFD; fd++){
+        	if(running->fd[fd] == NULL)
+        		break;
 
-        	if(fd == 10 - 1)
+        	if(fd == NFD - 1)
         	{
 			printf("Failed to open\n");
             		iput(mip);
             		return 0;
         	}
     	}
-
-    	OPEN_FILE* fp = NULL;
-    	for(int i = 0; i < NOFT; i++)
-    	{
-        	fp = &OpenFileTable[i];
-
-        // Check if the file is already open
-        // and verify it is open with a compatible mode
-        	if(mode != RD 
-                	&& fp->refCount > 0
-                	&& fp->mip == mip
-                	&& fp->mode != RD)
-     		{
-			printf("Failed to open!\n");
-            		iput(mip);
-            		return 0;
-        	}
-
-        // Make entry in first not in use OpenFileTable entry
-        	if(fp->refCount == 0)
-        	{
-            		fp->mode = mode;
-            		fp->offset = offset;
-            		fp->refCount++;
-            		fp->mip = mip;
-
-            // Add fd to process
-            running->fd[fd] = fp;
-
-            break;
-        }
-
-        // No more available space in the OpenFileTable
-        if(i == NOFT - 1)
-        {
-            fprintf(stderr, "open: failed to open '%s':"
-                    " Too many files open\n", pathname);
-            iput(mip);
-            return FILE_LIMIT;
-        }
-    }
 	
-	ip->i_atime = time(0L);
-    	mip->dirty = true;
+   	// Let running->fd[i] point at the OFT entry
+	running->fd[fd] = oftp;
 
+	// update INODE's time field
+	if (mode == 0)
+		ip->i_atime = time(0L);
+	else{
+		ip->i_atime = time(0L);
+		ip->i_mtime = time(0L);	
+	}		
+	mip->dirty = 1; //mark dirty
+	iput(mip); 
+	printf("fd: %d\n", fd);
 	return fd;
 }
 
 
 
-int close(int fd) {
+// return 1 on successs, 0 on failure
+int my_close(int fd) {
 	// Verify fd is within range.
 	if((fd < 0) || (fd >= NFD)) {
 		printf("File descriptor out of range!\n");
 		return 0;
 	}
 
-	OPEN_FILE* fp = NULL;
-
+	OFT* fp;
 	//verify running->fd[fd] is pointing at a OFT entry
 	for(int i = 0; i < NOFT; i++) {
-		fp = &OpenFileTable[i];
+	fp = &running->fd[i];
 
-		if(fp->mip == running->fd[fd]->mip) { // running->fd[fd] is pointing at entry.
+		if(fp->mptr == running->fd[fd]->mptr) { // running->fd[fd] is pointing at entry.
 			break;
 		}
-		if(i == 99) {
+		if(i == NOFT - 1) {
 			printf("File not in OpenFileTable!\n");
 			return 0;
 		}
     	}
 	
+
+	// close file
 	fp = running->fd[fd];
-	running->fd[fd] = NULL;
+	running->fd[fd] = 0;
 	fp->refCount--;
 
-	if (oftp->refCount > 0){ 
-		return 0;
+	if (fp->refCount > 0){ 
+		return 1; // file still has another instance open, but success
 	}
 
-
 	// last user of this OFT entry ==> dispose of the Minode[]
-	mip = oftp->inodeptr;
+	MINODE* mip = fp->mptr;
 	iput(mip);
-
 	return 1;
 }
 
 
-int lseek() {
+int my_lseek() {
 	//  From fd, find the OFT entry. 
 
 
@@ -214,6 +190,7 @@ int lseek() {
 
 	return 1;
 }
+
 
 
 
