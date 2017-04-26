@@ -19,6 +19,7 @@ The if none is provided, it defaults to "mydisk"
 #include "symlink_readlink.c"
 #include "touch_chmod.c"
 #include "open_close_lseek.c"
+#include "my_read.c"
 
 
 //globals
@@ -158,7 +159,7 @@ int main(int argc, char *argv[]){
 		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
 
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|refcount|pfd|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|read|refcount|pfd|debug|quit] ");
 
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
@@ -203,8 +204,7 @@ int main(int argc, char *argv[]){
 			toggle_debug();
 		}
 		if(strcmp(cmd, "link") == 0){
-			
-link(pathname, pathname2);
+			link(pathname, pathname2);
 		}		
 		if(strcmp(cmd, "unlink") == 0){
 			unlink(pathname);
@@ -215,24 +215,24 @@ link(pathname, pathname2);
 		if(strcmp(cmd, "readlink") == 0){
 			readlink(pathname);
 		}
-
 		if(strcmp(cmd, "touch") == 0){
 			my_touch(pathname);
 		}
 		if(strcmp(cmd, "chmod") == 0){
 			my_chmod(pathname, pathname2);
 		}
-
-
 		if(strcmp(cmd, "open") == 0){
 			my_open(pathname, pathname2);
 		}
 		if(strcmp(cmd, "close") == 0){
 			int param = atoi(pathname);
-			close(param);
+			my_close(param);
 		}
 		if(strcmp(cmd, "pfd") == 0){
 			print_running_fd();
+		}
+		if(strcmp(cmd, "read") == 0){
+			read_file(pathname, pathname2);
 		}
 
 	}	
