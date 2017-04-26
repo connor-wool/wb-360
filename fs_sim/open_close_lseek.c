@@ -14,10 +14,13 @@ page 332 in book
 //return 0 if fail, return i (running->fd[i]) if success
 //mode = 0|1|2|3 or R|W|RW|APPEND
 int my_open(char* file, char* given_mode) {
+	
 	if(!given_mode){
 		printf("No mode given!\n");
 		return 0;
 	}
+	if(DEBUGGING) printf("file=`%s` mode=`%s`\n", file, given_mode);
+
 	//set mode from the given user input (accepts 0-3 or R-APPEND)
 	int mode = -1;
 	if(strcmp(given_mode, "R") == 0)
@@ -31,8 +34,8 @@ int my_open(char* file, char* given_mode) {
 	else {
 		mode = given_mode;
 	}
-	if (mode != (0 | 1 | 2 | 3)) {
-		printf("Not a valid mode!\n");
+	if ((mode < 0) || (mode > 3)) {
+		printf("Not a valid mode! (mode=%d)\n",mode);
 		return 0;
 	}	
 
@@ -107,12 +110,13 @@ int my_open(char* file, char* given_mode) {
       	}
 
     	// find the SMALLEST i in running PROC's fd[ ] such that fd[i] is NULL
-    	int fd;
-	for(fd = 0; fd < NFD; fd++){
-        	if(running->fd[fd] == NULL)
-        		break;
+    	int fd = 0;
+	for(int i = 0; i < NFD; i++){
+        	if(running->fd[i] == NULL)
+        		fd = i;
+			break;
 
-        	if(fd == NFD - 1)
+        	if(i == NFD - 1)
         	{
 			printf("Failed to open\n");
             		iput(mip);
