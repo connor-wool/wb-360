@@ -81,7 +81,7 @@ int print_running_fd(){
 		for(int i = 0; i < NFD; i++){
 			fd = running->fd[i];
 			if(fd > 0){
-				printf("mode=%d refCount=%d mip=%d offset=%d\n", fd->mode, fd->refCount, fd->mptr->ino, fd->offset);
+				printf("fd[%d]: mode=%d refCount=%d mip=%d offset=%d\n", i, fd->mode, fd->refCount, fd->mptr->ino, fd->offset);
 			}
 		}
 	}

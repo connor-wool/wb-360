@@ -77,6 +77,9 @@ int ls_directory(int ino){
 			ftime[strlen(ftime)-1] = 0;
 			printf("%s ", ftime);
 
+			//ino
+			printf("ino=%d ", m_current->ino);
+
 			//name
 			printf("%s",namebuf);
                        

@@ -32,7 +32,7 @@ int my_open(char* file, char* given_mode) {
     	else if(strcmp(given_mode, "APPEND") == 0)
 		mode = 3;
 	else {
-		mode = given_mode;
+		mode = atoi(given_mode);
 	}
 	if ((mode < 0) || (mode > 3)) {
 		printf("Not a valid mode! (mode=%d)\n",mode);
