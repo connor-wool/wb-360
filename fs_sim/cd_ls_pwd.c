@@ -121,8 +121,8 @@ int ls(char *pathname){
 	if(DEBUGGING) printf("ls: sanitized path string is `%s`\n",sani);
 
         //get the ino for pathname
-        ino = getino(&dev, sani);
-        //turn that ino into an minode in core
+	ino = getino(&dev, sani);
+	//turn that ino into an minode in core
         mip = iget(dev, ino);
 
         //check if that inode points to a reg file or directory

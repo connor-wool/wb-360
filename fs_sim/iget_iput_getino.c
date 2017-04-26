@@ -60,6 +60,7 @@ int tokenize(char *source, char *result[]){
 }
 
 int print_minode(MINODE *mip){
+	if(DEBUGGING){
 	printf("Printing minode #%d\n", mip->ino);
 	INODE *ip = &mip->INODE;
 	printf("i_mode=[%x]\n", ip->i_mode);
@@ -70,6 +71,7 @@ int print_minode(MINODE *mip){
 	printf("i_block[0]=[%d]\n", ip->i_block[0]);
 	printf("dirty=[%d]\n", mip->dirty);
 	printf("-----\n");
+	}
 }
 
 
@@ -259,7 +261,7 @@ int getino(int *dev, char *pathname)
 
 		if (ino == 0){
 			iput(mip);
-			printf("getino: name %s does not exist\n", pathname);
+			if(DEBUGGING)printf("getino: name %s does not exist\n", pathname);
 			return 0;
 		} 
 		
