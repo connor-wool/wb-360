@@ -56,8 +56,6 @@ int rm_child(MINODE *parent, char *name){
 		bdealloc(parent->dev, parent->INODE.i_block[i]);
 		parent->INODE.i_block[i] = 0;
 
-		printf("\n\n\n\nTHIS IS IT\n\n\n\n\n\n");
-
 		//fix parent data block numbers so all non-zero are contiguous
 			//TODO: check this, although it should be done by default
 		//change parent filesize
@@ -88,9 +86,6 @@ int rm_child(MINODE *parent, char *name){
 		dp->rec_len = dNext->rec_len + removed_length;
 		dp->name_len = dNext->name_len;
 		strncpy(dp->name, dNext->name, dNext->name_len);
-
-
-
 
 //---------------------------------------------------------------------------	
 		parent->INODE.i_size -= BLKSIZE;

@@ -3,14 +3,6 @@ open_close_lseek.c
 */
 
 
-/*
-open algorithms:
-http://www.eecs.wsu.edu/~cs360/open_close.html
-
-page 332 in book
-*/
-
-
 //return 0 if fail, return i (running->fd[i]) if success
 //mode = 0|1|2|3 or R|W|RW|APPEND
 int my_open(char* file, char* given_mode) {
@@ -246,12 +238,4 @@ int my_lseek(char *fd_number_string, char *seek_value_string) {
 
 	return original_offset;
 }
-
-
-
-
-
-
-
-
 

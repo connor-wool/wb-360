@@ -3,10 +3,6 @@ link_unlink.c
 */
 
 
-//#include <libgen.h>
-
-
-
 // link oldfile newfile
 //returns 1 if success, 0 if fail
 int link(char* oldfile, char* newfile)
@@ -100,8 +96,6 @@ int link(char* oldfile, char* newfile)
 
 
 
-
-
 // unlink file. Unlink command can also be used to delete any regular file
 // returns 1 for success, 0 for failure
 int unlink(char* filename) {
@@ -156,72 +150,4 @@ int unlink(char* filename) {
 	iput(pmip);
 	return 1;
 }
-
-
-
-
-
-
-
-
-//------ below is old code... unused ----------------------------
-
-
-
-/*
-//-------------------------------------------------------
-
-
-	//get parent in memory
-	int pino = getino(&dev, parent);
-	MINODE* pmip = iget(dev, pino);
-
-	printf("\nfilname: %s\n\n", filename);
-	printf("parent: %s\n\n", parent);
-	printf("child: %s\n\n", child);
-
-	// remove basename from parent DIR
-	printf("\n\n rm_child \n\n");
-	rm_child(pmip, child);
-	
-	pmip->dirty = 1;
-	iput(pmip);
- 
- 	INODE* ip = &mip->INODE;
-
-	// decrement INODE's link_count
-	mip->INODE.i_links_count--;
-	if (mip->INODE.i_links_count > 0){	// (SLINK file)
-		printf("\n\n SLINK \n\n");
-		mip->dirty = 1; 
-		iput(mip);
-	}
-
-	if (mip->INODE.i_links_count == 0){	// (!SLINK file)
-		printf("\n\n !SLINK \n\n");
-		truncate(mip);
-		idealloc(dev, ino);//deallocate INODE;
-		iput(mip);
-	}
-
-	return 1;
-
-}
-
-
-// deallocate all data blocks
-int truncate(MINODE* m){
-        // Deallocate its blocks
-        for(int b = 0; b < 12 && ip->i_block[b] != 0; b++) {
-		//int bdealloc(int dev, int blk_num)
-		bdealloc(dev, ip->i_block[b]);
-	}
-
-//in for loop, 12 = number of direct blocks?
-	return 1;
-}
-
-
-*/
-
 
