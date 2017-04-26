@@ -216,18 +216,35 @@ int my_close(int fd) {
 }
 
 
-int my_lseek() {
+int my_lseek(char *fd_number_string, char *seek_value_string) {
 	//  From fd, find the OFT entry. 
+	int fd_number;
+	int seek_value;
 
+	fd_number = atoi(fd_number_string);
+	seek_value = atoi(seek_value_string);
 
-	//  change OFT entry's offset to position but make sure NOT to over run either end
-	//  of the file.
+	if(DEBUGGING) printf("lseek: fd=[%d] seek=[%d]\n", fd_number, seek_value);
 
+	//get pointer to file
+	OFT *ofd = running->fd[fd_number];
 
-	//return original position
+	//check if seek is larger than size
+	if(seek_value > ofd->mptr->INODE.i_size){
+		printf("TRYING TO SEEK PAST END OF FILE! NO CAKE FOR YOU!\n");
+		return 1;
+	}
+	if(seek_value < 0){
+		printf("TRYING TO SEEK TO POINT BEFORE FILE! NO CAKE FOR YOU!\n");
+		return 1;
+	}
+	
+	int original_offset = ofd->offset;
+	ofd->offset = seek_value;
 
+	if(DEBUGGING) printf("lseek: original_offset=[%d] new_offset=[%d]\n", original_offset, ofd->offset);
 
-	return 1;
+	return original_offset;
 }
 
 
