@@ -44,13 +44,16 @@ int my_open(char* file, char* given_mode) {
     	else
         	dev = running->cwd->dev;
 	
+	if(DEBUGGING) printf("open: get ino, open minode, get inode pointer\n");	
 	//get pathname's inumber, Minode pointer
 	int ino = getino(&dev, file);
 	MINODE* mip = iget(dev,ino);  
 	INODE* ip = &mip->INODE; 
-// dev may change with mounting
-// so this will need updating for level3
+	
+	// dev may change with mounting
+	// so this will need updating for level3
 
+	if(DEBUGGING) printf("open: verify that file exists (mip != 0)\n");
 	// verify file exists
     	if(!mip)
     	{
@@ -58,6 +61,7 @@ int my_open(char* file, char* given_mode) {
 		return 0;
     	}
 
+	if(DEBUGGING) printf("open: verify that file is regular file\n");
     	// Verify file is a regular file
     	if(!S_ISREG(mip->INODE.i_mode))
     	{
@@ -66,16 +70,35 @@ int my_open(char* file, char* given_mode) {
         	return 0; //fail
 	}
 
+	if(DEBUGGING) printf("open: check if file is already opened\n");
+	
+	//first we create a null pointer that will be used to point to each OFT entry in the proc's array in turn.
+	OFT* fp = 0;
 
-	//Check whether the file is ALREADY opened with INCOMPATIBLE mode
-	OFT* fp = NULL;
-	for(int i = 0; i < NOFT; i++){
-	fp = running->fd[i];
+	//then we create our for loop that will look at each entry in the OFT table of the current proc.
+	for(int i = 0; i < NFD; i++){
+
+		//we set our OFT pointer (called fp) to whatever is in the array in the proc at this index.
+		if(DEBUGGING) printf("running->fd[0]=%d\n", running->fd[0]);
+		fp = running->fd[i];
+		if(DEBUGGING) printf("fp=%d\n", fp);
 		
-        	if(mode != 0 
-			&& fp->refCount > 0
-                	&& fp->mptr == mip
-                	&& fp->mode != 0)
+		//print some info about the current fp pointer
+		if(DEBUGGING && fp > 0){
+			printf("fp=0x%x\n");
+			printf("mode=%d\n", mode);
+			printf("fp->refCount=%d\n", fp->refCount);
+			printf("fp->mptr=%x mip=%x\n", fp->mptr, mip);
+			printf("fp->mode=%d\n", fp->mode);
+		}
+
+		//now we check:
+		//	is fp not null?
+		//	is the fp minode the same as our open mip?
+		//	is the mode argument something other than read?
+		//	is the refcount of this file table object greater than 0?
+		//	is the mode of this file table object something other than read?
+        	if(fp > 0 && fp->mptr == mip && mode != 0 && fp->refCount > 0  && fp->mode != 0)
 		{
 			printf("File is already open in an incompatible mode!\n");
             		iput(mip);
@@ -84,8 +107,9 @@ int my_open(char* file, char* given_mode) {
 	}
 
 
+	if(DEBUGGING) printf("make a new OFT struct to store our data in (using malloc)\n");
 	//allocate a free open file table pointer
-	OFT* oftp;
+	OFT* oftp = (OFT*)malloc(sizeof(OFT));
 	oftp->mode = mode;      // mode = 0|1|2|3 for R|W|RW|APPEND 
 	oftp->refCount = 1;
 	oftp->mptr = mip;  // point at the file's minode[]
@@ -123,6 +147,8 @@ int my_open(char* file, char* given_mode) {
             		return 0;
         	}
     	}
+
+	if(DEBUGGING) printf("found open space in running's FD: [%d]\n", fd);
 	
    	// Let running->fd[i] point at the OFT entry
 	running->fd[fd] = oftp;
