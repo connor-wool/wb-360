@@ -160,11 +160,7 @@ int main(int argc, char *argv[]){
 		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
 
-<<<<<<< HEAD
 		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|read|write|cat|cp|mv|refcount|pfd|debug|quit] ");
-=======
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|lseek|read|write|cat|refcount|pfd|debug|quit] ");
->>>>>>> b1557fcb4131386c8787420292f3fb8556e6beb1
 
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
@@ -245,17 +241,15 @@ int main(int argc, char *argv[]){
 		if(strcmp(cmd, "write") == 0){
 			my_write(pathname, pathname2);
 		}
-<<<<<<< HEAD
 		if(strcmp(cmd, "cp") == 0){
 			my_cp(pathname, pathname2);
 		}
 		if(strcmp(cmd, "mv") == 0){
 			my_mv(pathname, pathname2);
-=======
 		if(strcmp(cmd, "lseek") == 0){
 			my_lseek(pathname, pathname2);
->>>>>>> b1557fcb4131386c8787420292f3fb8556e6beb1
 		}
 
 	}	
+}
 }

@@ -163,7 +163,7 @@ int chdir(char *pathname){
 		printf("pause for breath: then get inode\n");
 		getchar();
 	}
-
+	//get MINODE pointing to (dev, ino)
         ino = getino(&dev, pathname);
         mip = iget(dev, ino);
 
@@ -171,7 +171,7 @@ int chdir(char *pathname){
         	printf("mip is now ino=[%d]\n", mip->ino);
         	printf("mip i_mode =[%x]\n", mip->INODE.i_mode);
 	}
-
+        //if mip is not DEV, reject with error message
         if(mip->INODE.i_mode & 0x8000){
                 printf("trying to change directory to a regular file! Rejecting.\n");
                 return -1;
