@@ -83,6 +83,9 @@ int print_running_fd(){
 			if(fd > 0){
 				printf("fd[%d]: mode=%d refCount=%d mip=%d offset=%d\n", i, fd->mode, fd->refCount, fd->mptr->ino, fd->offset);
 			}
+			else{
+				printf("fd[%d]: EMPTY\n", i);
+			}
 		}
 	}
 }

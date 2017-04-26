@@ -79,7 +79,7 @@ int my_open(char* file, char* given_mode) {
 	for(int i = 0; i < NFD; i++){
 
 		//we set our OFT pointer (called fp) to whatever is in the array in the proc at this index.
-		if(DEBUGGING) printf("running->fd[0]=%d\n", running->fd[0]);
+		if(DEBUGGING) printf("running->fd[%d]=%d\n",i, running->fd[i]);
 		fp = running->fd[i];
 		if(DEBUGGING) printf("fp=%d\n", fp);
 		
@@ -134,24 +134,32 @@ int my_open(char* file, char* given_mode) {
       	}
 
     	// find the SMALLEST i in running PROC's fd[ ] such that fd[i] is NULL
-    	int fd = 0;
-	for(int i = 0; i < NFD; i++){
-        	if(running->fd[i] == NULL)
-        		fd = i;
-			break;
+    	if(DEBUGGING) printf("finding open space in OFT array for new file\n");
+	
+	/*
+	 *THIS CHUNK OF CODE IS THE BANE OF MY FUCKING EXISTENCE,
+	  IF THE VARIABLE IS NON-ZERO, THEN WHY DOES (running->fd[i] == 0) EVAL TO TRUE???????
+	 */
 
-        	if(i == NFD - 1)
-        	{
+	int free_OFT_slot = 0;
+	for(int i = 0; i < NFD; i++){
+		if(DEBUGGING) printf("running->fd[%d]=0x%x=%d\n", i, running->fd[i], running->fd[i]);
+        	if(running->fd[i] == 0 || running->fd[i]->mptr->refCount < 1){
+			if(DEBUGGING) printf("found open space at running->fd[%d]=%d\n", i, running->fd[i]);
+        		free_OFT_slot = i;
+			break;
+		}
+        	if(i == NFD - 1){
 			printf("Failed to open\n");
             		iput(mip);
             		return 0;
         	}
     	}
 
-	if(DEBUGGING) printf("found open space in running's FD: [%d]\n", fd);
+	if(DEBUGGING) printf("creating new OFT entry at running->fd[%d]\n", free_OFT_slot);
 	
    	// Let running->fd[i] point at the OFT entry
-	running->fd[fd] = oftp;
+	running->fd[free_OFT_slot] = oftp;
 
 	// update INODE's time field
 	if (mode == 0)
@@ -161,8 +169,9 @@ int my_open(char* file, char* given_mode) {
 		ip->i_mtime = time(0L);	
 	}		
 	mip->dirty = 1; //mark dirty
-	iput(mip); 
-	printf("fd: %d\n", fd);
+	//don't run iput yet, because we want to retain a reference to this minode so it doesn't get overwritten
+	//iput(mip); 
+	printf("fd: %d\n", free_OFT_slot);
 	return fd;
 }
 
