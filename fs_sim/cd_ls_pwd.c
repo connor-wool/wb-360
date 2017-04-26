@@ -22,7 +22,9 @@ int ls_file(char *pathname){
 }
 
 int ls_directory(int ino){
-        //create pointers for inode and minode
+	char full_permissions[] = 	"xwrxwrxwr-------";
+        char no_permissions[] = 	"----------------";
+	//create pointers for inode and minode
         MINODE *mip; INODE *ip;
         int i;
         char buf[BLKSIZE];
@@ -36,12 +38,55 @@ int ls_directory(int ino){
                 get_block(dev, ip->i_block[i], buf);
                 cp = buf;
                 dp = (DIR*)cp;
+
+		//iterates through all dir entries in this block
                 while(cp < &buf[BLKSIZE-1] && dp->rec_len > 0){
+			//buffer that stores name from dp->name field
 			char *namebuf = (char*)malloc(dp->name_len + 1);
 			memset(namebuf, 0, dp->name_len +1);
 			memcpy(namebuf,dp->name,dp->name_len);
-                        printf("|LS| %s\n",namebuf);
-                        cp += dp->rec_len;
+
+			//get a reference to the inode for this entry
+			MINODE *m_current = iget(dev, dp->inode);
+			INODE *ic = &m_current->INODE;
+
+			//print a proper ls -l style listing for this entry
+			//print type
+			if(ic->i_mode & 0x8000) printf("-");
+			else if(ic->i_mode & 0x4000) printf("d");
+			else printf("?");
+
+			//print permissions
+			for(int j = 8; j >= 0; j--){
+				if(ic->i_mode & (1 << j))
+					printf("%c", full_permissions[j]);
+				else
+					printf("%c", no_permissions[j]);
+			}
+			//link count
+			printf(" %d ", ic->i_links_count);
+			//owner and group
+			printf("%2d %2d ", ic->i_uid, ic->i_gid);
+
+			//size
+			printf("%8d ", ic->i_size);
+
+			//time
+			char ftime[256] = {0};
+			strcpy(ftime, ctime(&ic->i_atime));
+			ftime[strlen(ftime)-1] = 0;
+			printf("%s ", ftime);
+
+			//name
+			printf("%s",namebuf);
+                       
+		       	//print new line
+			printf("\n");	
+			//update pointers for next loop
+			
+			iput(m_current);
+
+			cp += dp->rec_len;
                         dp = (DIR*)cp;
                 }
                 i++;

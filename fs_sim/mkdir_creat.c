@@ -8,15 +8,15 @@ This file contains code to make new directories and files
 === PUT NAME OF A FILE INTO PARENT DIR RECORD ENTRIES ===
 ********************************************************/
 int enter_name(MINODE *pip, int myino, char *myname){
-    printf("entering name %s into parent ino=[%d]\n", myname, pip->ino);
+    if(DEBUGGING) printf("entering name %s into parent ino=[%d]\n", myname, pip->ino);
     int i;
     DIR *dp;
     char *cp;
 
-    printf("search for last data block:\n");
+    if(DEBUGGING) printf("search for last data block:\n");
     i = 1;
     for(int i = 1; i < 12; i++){
-        printf("looking at data block [%d] val=[%d]\n", i, pip->INODE.i_block[i]);
+        if(DEBUGGING) printf("looking at data block [%d] val=[%d]\n", i, pip->INODE.i_block[i]);
         if (pip->INODE.i_block[i] == 0){
             break;
         }
@@ -24,34 +24,34 @@ int enter_name(MINODE *pip, int myino, char *myname){
     
     //read last data block of parent into buf
     char buf[BLKSIZE];
-    printf("reading in i_block[%d]\n", i-1);
+    if(DEBUGGING) printf("reading in i_block[%d]\n", i-1);
     get_block(pip->dev, pip->INODE.i_block[i-1], buf);
 
     dp = (DIR*)buf;
     cp = buf;
 
-    printf("searching for last dir entry\n");
+    if(DEBUGGING) printf("searching for last dir entry\n");
     while(cp + dp->rec_len < buf + BLKSIZE && dp->rec_len > 0){
-        printf("moving past %s\n", dp->name);
+        if(DEBUGGING) printf("moving past %s\n", dp->name);
         cp += dp->rec_len;
         dp = (DIR*)cp;
     }
 
     //now we should be looking at the last inode;
-    printf("last dir entry is: [%s]?\n", dp->name);
-    printf("last dir size is: [%d] bytes\n",dp->rec_len);
+    if(DEBUGGING) printf("last dir entry is: [%s]?\n", dp->name);
+    if(DEBUGGING) printf("last dir size is: [%d] bytes\n",dp->rec_len);
 
     int ideal_length = 4*((8 + dp->name_len + 3)/4);
-    printf("new ideal length is: [%d]\n", ideal_length);
+    if(DEBUGGING) printf("new ideal length is: [%d]\n", ideal_length);
 
     int remain = dp->rec_len - ideal_length;
-    printf("there is [%d] bytes remaining in block\n", remain);
+    if(DEBUGGING) printf("there is [%d] bytes remaining in block\n", remain);
 
     int need_length = 4*((8 + strlen(myname) + 3)/4);
-    printf("we need [%d] bytes to enter new inode\n", need_length);
+    if(DEBUGGING) printf("we need [%d] bytes to enter new inode\n", need_length);
 
     if(remain >= need_length){
-        printf("there is enough space, creating entry\n");
+        if(DEBUGGING) printf("there is enough space, creating entry\n");
 	dp->rec_len = ideal_length;
         cp += dp->rec_len;
         dp = (DIR*)cp;
@@ -59,11 +59,11 @@ int enter_name(MINODE *pip, int myino, char *myname){
         dp->rec_len = remain;
         dp->name_len = strlen(myname);
         strcpy(dp->name, myname);
-	printf("final entry now: [ino=%d rlen=%d n=%s]\n", dp->inode, dp->rec_len, dp->name);
+	if(DEBUGGING) printf("final entry now: [ino=%d rlen=%d n=%s]\n", dp->inode, dp->rec_len, dp->name);
 	put_block(pip->dev, pip->INODE.i_block[i-1], buf);
     }    
     else{
-	printf("not enough space, making new data block\n");
+	if(DEBUGGING) printf("not enough space, making new data block\n");
         //we need to allocate a new data block for this entry
         int bno = balloc(pip->dev);
         pip->INODE.i_size += BLKSIZE;

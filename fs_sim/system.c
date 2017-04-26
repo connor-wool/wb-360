@@ -17,6 +17,7 @@ The if none is provided, it defaults to "mydisk"
 #include "rmdir.c"
 #include "link_unlink.c"
 #include "symlink_readlink.c"
+#include "touch_chmod.c"
 
 //globals
 /*
@@ -151,9 +152,9 @@ int main(int argc, char *argv[]){
 		cmd[0] = 0;
 		pathname[0] = 0;
 		pathname2[0] = 0;
-		printf("\n=== start new command execution loop ===\n");
+		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|link|unlink|symlink|readlink|refcount|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|refcount|debug|quit] ");
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		if(DEBUGGING) printf("found input: `%s`\n", line);
@@ -208,6 +209,9 @@ link(pathname, pathname2);
 		}
 		if(strcmp(cmd, "readlink") == 0){
 			readlink(pathname);
+		}
+		if(strcmp(cmd, "touch") == 0){
+			my_touch(pathname);
 		}
 
 	}	
