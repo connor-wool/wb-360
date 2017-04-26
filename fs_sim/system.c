@@ -159,7 +159,7 @@ int main(int argc, char *argv[]){
 		if(DEBUGGING) printf("\n=== start new command execution loop ===\n");
 		//printf("CWD=[%d] = `%s`\n", running->cwd->ino, getinodename(running->cwd->ino));
 
-		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|read|write|cat|refcount|pfd|debug|quit] ");
+		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|lseek|read|write|cat|refcount|pfd|debug|quit] ");
 
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
@@ -239,6 +239,9 @@ int main(int argc, char *argv[]){
 		}
 		if(strcmp(cmd, "write") == 0){
 			my_write(pathname, pathname2);
+		}
+		if(strcmp(cmd, "lseek") == 0){
+			my_lseek(pathname, pathname2);
 		}
 
 	}	

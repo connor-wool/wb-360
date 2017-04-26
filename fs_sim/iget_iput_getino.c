@@ -75,7 +75,6 @@ int print_minode(MINODE *mip){
 }
 
 int print_running_fd(){
-	if(DEBUGGING){
 		OFT *fd = 0;
 		printf("printing OPEN FILE TABLE for *running*\n");
 		for(int i = 0; i < NFD; i++){
@@ -87,7 +86,6 @@ int print_running_fd(){
 				printf("fd[%d]: EMPTY\n", i);
 			}
 		}
-	}
 }
 
 MINODE *iget(int dev, int ino){
