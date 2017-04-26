@@ -113,6 +113,7 @@ int main(int argc, char *argv[]){
 	sp = (SUPER*)buf;
 	if(sp->s_magic != 0xef53){
 		printf("main: ERROR! ext2 filesystem not found on disk\n");
+		printf("main: s_magic found on disk was [%x]\n", sp->s_magic);
 		printf("main: exiting program.\n");
 		exit(1);
 	}

@@ -139,7 +139,7 @@ int my_open(char* file, char* given_mode) {
 
 
 // return 1 on successs, 0 on failure
-int close(int fd) {
+int my_close(int fd) {
 	// Verify fd is within range.
 	if((fd < 0) || (fd >= NFD)) {
 		printf("File descriptor out of range!\n");
@@ -177,7 +177,7 @@ int close(int fd) {
 }
 
 
-int lseek() {
+int my_lseek() {
 	//  From fd, find the OFT entry. 
 
 
@@ -190,6 +190,7 @@ int lseek() {
 
 	return 1;
 }
+
 
 
 
