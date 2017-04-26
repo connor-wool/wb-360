@@ -9,7 +9,6 @@ int read_file(char* a1, char* a2){
 	int fd = atoi(a1);
 	int nbytes = atoi(a2);
 	char buf[nbytes + 1];
-	printf("\n\n1\n\n");
 	return(my_read(fd, buf, nbytes));
 }
 
@@ -35,7 +34,6 @@ int my_read(int fd, char *buf, int nbytes)
 	//Calculates the available amount of bytes to be read
 	avil = mip->INODE.i_size - oftp->offset;
 
-	printf("\n\n2\n\n");
 	while (nbytes && avil){
 
 		//Compute LOGICAL BLOCK number lbk and startByte in that block from offset;
