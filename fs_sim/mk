@@ -1,2 +1,2 @@
-#! /bin/bash
-gcc -m32 -g system.c -w -std=c99
+#!/bin/bash
+gcc -m32 -g system.c

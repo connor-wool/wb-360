@@ -164,7 +164,7 @@ int my_open(char* file, char* given_mode) {
 	//don't run iput yet, because we want to retain a reference to this minode so it doesn't get overwritten
 	//iput(mip); 
 	printf("fd: %d\n", free_OFT_slot);
-	return fd;
+	return free_OFT_slot;
 }
 
 

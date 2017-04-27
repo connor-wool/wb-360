@@ -63,23 +63,54 @@ int my_write(int fd_num, char *buf, int nbytes){
 		}
 		//double indirect block TODO
 		else{
-			//get the double indirect block
-			char buf2[BLKSIZE];
-			get_block(ofp->mptr->dev, ip->i_block[13], buf2);
-			int *int_ptr = buf2;
-			//double indirect block points to single indirect blocks, 256 of them, each with 256 entries
-			int_ptr += (logical_block - 256 - 12) / 256;
-			//int pointer is now value of single indirect block
-			get_block(ofp->mptr->dev, *int_ptr, buf2);
-			int_ptr = buf2;
-			int_ptr += (logical_block - 256 - 12) % 256;
-			//int pointer is now value of data block
-			if(*int_ptr == 0){
-				*int_ptr = balloc(ofp->mptr->dev);
+			int double_indirect_index; int single_indirect_index;
+			char double_indirect_buf[BLKSIZE];
+			char single_indirect_buf[BLKSIZE];
+			int *double_indirect_pointer;
+			int *single_indirect_pointer;
+
+			//if the double indirect block doesn't currently exist, we have to create it
+			if(ip->i_block[13] == 0){
+				ip->i_block[13] = balloc(ofp->mptr->dev);
 				memset(wbuf, 0, BLKSIZE);
-				put_block(ofp->mptr->dev, *int_ptr, wbuf);
+				put_block(ofp->mptr->dev, ip->i_block[13], wbuf);
 			}
 
+			//read double indirect block into a buffer
+			//establish a pointer to the front of the double indirect buffer
+			get_block(ofp->mptr->dev, ip->i_block[13], double_indirect_buf);
+			double_indirect_pointer = (int*) double_indirect_buf;
+
+			//calculate index within the double indirect block of our single indirect block
+			//increment our double_indirect pointer by this index
+			double_indirect_index = ((logical_block - 256 - 12) / 256);
+			double_indirect_pointer += double_indirect_index;
+
+			//if the single indirect block doesn't exist, we need to create one before continuing
+			if(*double_indirect_pointer == 0){
+				*double_indirect_pointer = balloc(ofp->mptr->dev);
+				memset(wbuf, 0, BLKSIZE);
+				put_block(ofp->mptr->dev, *double_indirect_pointer, wbuf);
+			}
+
+			//read this single_indirect block into a buffer
+			//establish pointer to front of single indirect buf
+			get_block(ofp->mptr->dev, *double_indirect_pointer, single_indirect_buf);
+			single_indirect_pointer = (int*) single_indirect_buf;
+
+			//calculate index within single indirect block
+			//increment single_indirect_pointer by this value
+			single_indirect_index = ((logical_block - 256 - 12) % 256);
+			single_indirect_pointer += single_indirect_index;
+
+			//single_indirect_pointer now points to data block #
+			//if this number is 0, we need to allocate a new block
+			if(*single_indirect_pointer == 0){
+				*single_indirect_pointer = balloc(ofp->mptr->dev);
+				memset(wbuf, 0, BLKSIZE);
+				put_block(ofp->mptr->dev, *single_indirect_pointer, wbuf);
+			}
+			disk_block = *single_indirect_pointer;
 		}
 
 		//------WRITE DATA TO FOUND BLOCK NUMBER

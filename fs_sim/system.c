@@ -22,6 +22,7 @@ The if none is provided, it defaults to "mydisk"
 #include "my_read.c"
 #include "my_write.c"
 #include "my_cp_mv.c"
+#include "my_cat.c"
 
 //globals
 /*
