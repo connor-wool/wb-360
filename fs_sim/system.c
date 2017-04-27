@@ -239,7 +239,7 @@ int main(int argc, char *argv[]){
 			my_cat(pathname);
 		}
 		if(strcmp(cmd, "write") == 0){
-			my_write(pathname, pathname2);
+			write_file(pathname, pathname2);
 		}
 		if(strcmp(cmd, "cp") == 0){
 			my_cp(pathname, pathname2);

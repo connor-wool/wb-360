@@ -3,48 +3,158 @@
  */
 
 
-int my_write(char *fd_num_string, char *inputstring){
-	int fd_num = -1;
-	char buf[BLKSIZE];
-	char *buf_ptr;
+int my_write(int fd_num, char *buf, int nbytes){
+	int bytes_to_write = nbytes;
+	int logical_block; int start_byte;
+	int disk_block;
+	OFT *ofp;
+	INODE *ip;
+	char wbuf[BLKSIZE];
+	char *cp;
+	char *read_pointer;
 
-	fd_num = atoi(fd_num_string);
-	if(DEBUGGING) printf("write: converted string `%s` to value `%d`\n", fd_num_string, fd_num);
+	//make a pointer to the OTF object
+	ofp = running->fd[fd_num];
+	ip = &ofp->mptr->INODE;
 
-	//get a reference to the opened file descriptor in the running->fd array
-	//verify that file descriptor number is valid
-	if(running->fd[fd_num] == 0){
-		printf("write: trying to access file descriptor that does not exist\n");
-		return 1;
+	//make a pointer to keep track of our progress through buf
+	read_pointer = buf;
+
+	while(bytes_to_write > 0){
+		logical_block = ofp->offset / BLKSIZE;
+		start_byte = ofp->offset % BLKSIZE;
+
+		//------FIND BLOCK NUMBER ON DISK---------
+
+		//direct block writes
+		if(logical_block < 12){
+			
+			//check if block exists
+			if(ip->i_block[logical_block] == 0){
+
+				//allocate new block if it doesn't exist
+				ip->i_block[logical_block] = balloc(ofp->mptr->dev);
+				
+				//write 0's to block on disk
+				memset(wbuf, 0, BLKSIZE);
+				put_block(ofp->mptr->dev, ip->i_block[logical_block], wbuf);
+			}	
+			disk_block = ip->i_block[logical_block];
+
+				
+		}
+		//single indirect block
+		else if (logical_block >= 12 && logical_block < 256 + 12){
+			//get the indirect block, and from there find the data block
+			char buf2[BLKSIZE];
+			//get the indirect listing block into buf2
+			get_block(ofp->mptr->dev, ip->i_block[12], buf2);
+			//create an int pointer to the start of the indirect block
+			int *int_ptr = buf2;
+			//move int pointer to the block number we want to read
+			int_ptr += logical_block - 12;
+			//check if block exists
+			if(*int_ptr == 0){
+				*int_ptr = balloc(ofp->mptr->dev);
+				memset(wbuf, 0, BLKSIZE);
+				put_block(ofp->mptr->dev, *int_ptr, wbuf);
+			}
+			disk_block = *int_ptr;
+		}
+		//double indirect block TODO
+		else{
+			//get the double indirect block
+			char buf2[BLKSIZE];
+			get_block(ofp->mptr->dev, ip->i_block[13], buf2);
+			int *int_ptr = buf2;
+			//double indirect block points to single indirect blocks, 256 of them, each with 256 entries
+			int_ptr += (logical_block - 256 - 12) / 256;
+			//int pointer is now value of single indirect block
+			get_block(ofp->mptr->dev, *int_ptr, buf2);
+			int_ptr = buf2;
+			int_ptr += (logical_block - 256 - 12) % 256;
+			//int pointer is now value of data block
+			if(*int_ptr == 0){
+				*int_ptr = balloc(ofp->mptr->dev);
+				memset(wbuf, 0, BLKSIZE);
+				put_block(ofp->mptr->dev, *int_ptr, wbuf);
+			}
+
+		}
+
+		//------WRITE DATA TO FOUND BLOCK NUMBER
+		//all cases will fall through to this point
+		
+		//read in the disk block	
+		get_block(ofp->mptr->dev, disk_block, wbuf);
+		
+		//make a pointer to the start of our write in this block
+		cp = wbuf + start_byte;
+
+		//calculate the space remaining to write to in this block
+		int remain = BLKSIZE - start_byte;
+
+		//TWO CASES:
+		//	remain > bytes_to_write
+		//	remain < bytes_to_write
+	
+		//bytes to write is more than space in block
+		if(remain < bytes_to_write){
+			//OPTIMIZATION -- USE MEM COPY
+			memcpy(cp, read_pointer, remain);
+
+			//decrement bytes to write by bytes written
+			bytes_to_write -= remain;
+
+			//advance read pointer by bytes written
+			read_pointer += remain;
+
+			//increment offset by bytes written
+			ofp->offset += remain;
+
+			//adjust size of file if needed
+			if(ofp->offset > ip->i_size){
+				ip->i_size = ofp->offset;
+			}
+		}
+		//case where bytes to write is less than space in block
+		else{
+			memcpy(cp, read_pointer, bytes_to_write);
+			read_pointer += bytes_to_write;
+			ofp->offset += bytes_to_write;
+			if(ofp->offset > ip->i_size){
+				ip->i_size = ofp->offset;
+			}
+			bytes_to_write = 0;
+		}
+
+		//write the new data back to disk
+		put_block(ofp->mptr->dev, disk_block, wbuf);
 	}
-	
-	OFT *ofd = running->fd[fd_num];
-	INODE *ip = &ofd->mptr->INODE;
-	if(DEBUGGING) printf("write: created pointers to ofd and ip\n");
 
-	//check that the file descriptor is open in a mode compatible with a write action
-	if(ofd->mode == 0){
-		printf("write: cannot write to read-only file!\n");
-		return 1;
-	}
-	if(DEBUGGING) printf("write: verified that file is not write-protected\n");
-
-	//write data into block based on offset, then write block back to disk
-	int first_write_block = ofd->offset / BLKSIZE;
-	get_block(ofd->mptr->dev, ip->i_block[first_write_block], buf);
-	buf_ptr = buf + (ofd->offset % BLKSIZE);
-	strcpy(buf_ptr, inputstring);
-	put_block(ofd->mptr->dev, ip->i_block[first_write_block], buf);
-
-	ofd->offset += strlen(inputstring);
-	//add to offset value based on amount written
-	
-	ip->i_size += strlen(inputstring);
-	//update file size
-	
-	ip->i_atime = ip->i_mtime = time(0L);
-	//update file time
-	
-	//mark minode as dirty
-	ofd->mptr->dirty = 1;
+	ofp->mptr->dirty = 1;
+	printf("wrote %d char into file descriptor fd=%d\n", nbytes, fd_num);
+	return nbytes;
 }
+
+int write_file(char *fd_num_string, char *string_to_write){
+	int fd_num, string_length;
+	OFT *opened_file;
+	char buf[BLKSIZE];
+
+	//parse number string to a number
+	fd_num = atoi(fd_num_string);
+
+	//verify file is open in proper mode
+	opened_file = running->fd[fd_num];
+	if(opened_file->mode < 1){
+		printf("file is opened in write-protected mode!\n");
+		return -1;
+	}
+
+	//copy the string into a buf and get length in bytes
+	strcpy(buf, string_to_write);
+	string_length = strlen(string_to_write);
+
+	return( my_write(fd_num, buf, string_length));
+}	
