@@ -12,7 +12,7 @@ int my_read(int fd_num, char *buf, int nbytes)
 	char *cp;
 
 	if(DEBUGGING)printf("read: starting read\n");
-	if(DEBUGGING)printf("args: fd=%d buf=%x nbytes=%d\n", fd, buf, nbytes);
+	if(DEBUGGING)printf("args: fd=%d buf=%x nbytes=%d\n", fd_num, buf, nbytes);
 
 	//establish pointers to OFT and INODE for this file
 	ofp = running->fd[fd_num];
@@ -86,13 +86,18 @@ int my_read(int fd_num, char *buf, int nbytes)
 		//calulate the data remaining to be read in this block
 		int remain = BLKSIZE - start_byte;
 
+		if((ip->i_size - ofp->offset) < remain)
+		{
+			remain = ip->i_size - ofp->offset;
+		}
+
 		//two cases:
 		//	remain > bytes_to_read 
 		//	remain < bytes_to_read
 		
 		if(remain < nbytes){
 			//OPTIMIZATION use memcopy to complete in one action
-			memcpy(cp, return_buf, remain);
+			memcpy(return_buf, cp, remain);
 
 			nbytes -= remain;
 
@@ -103,7 +108,8 @@ int my_read(int fd_num, char *buf, int nbytes)
 			total_bytes_read += remain;
 		}
 		else{
-			memcpy(cp, return_buf, nbytes);
+
+			memcpy(return_buf, cp, nbytes);
 			return_buf += nbytes;
 			ofp->offset += nbytes;
 			total_bytes_read += nbytes;

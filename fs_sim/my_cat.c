@@ -3,7 +3,7 @@
 
 int my_cat(char *pathname){
 	int open_fd;
-	char buf[BLKSIZE], dummy = 0; //how does this work?
+	char text_buf[BLKSIZE], dummy = 0; //how does this work?
 	int n;
 
 	printf("KC'S COOL CAT MEOWS!\n");
@@ -15,14 +15,16 @@ int my_cat(char *pathname){
 
 	print_running_fd();
 	printf("pause, press enter key to continue\n");
-	getchar();
+
+	memset(text_buf, 0, BLKSIZE);
 
 	//loop until 0 is returned from read
-	while( n = my_read(open_fd, buf, BLKSIZE)){
-		buf[n] = 0;
-		printf("%s", buf);
-		getchar();
+	while( n = my_read(open_fd, text_buf, BLKSIZE)){
+		text_buf[n] = 0;
+		printf("%s", text_buf);
+		memset(text_buf, 0, BLKSIZE);
 	}
-
+	getchar();
 	close(open_fd);
+	getchar();
 }

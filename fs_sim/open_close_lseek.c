@@ -173,7 +173,7 @@ int my_open(char* file, char* given_mode) {
 int my_close(int fd_val) {
 
 	// Verify fd is within range.
-	if((fd < 0) || (fd >= NFD)) {
+	if((fd_val < 0) || (fd_val >= NFD)) {
 		printf("File descriptor out of range!\n");
 		return 0;
 	}
