@@ -1,132 +1,147 @@
 /*
 my_read.c
-
 */
 
-int read_file(char* a1, char* a2){
-	//verify that fd is open for R or RW
-	//HOW?
-	int fd = atoi(a1);
-	int nbytes = atoi(a2);
-	char buf[nbytes + 1];
-	return(my_read(fd, buf, nbytes));
-}
-
-
-int my_read(int fd, char *buf, int nbytes)
+int my_read(int fd_num, char *buf, int nbytes)
 {
-	int count = 0;
-    	char *cq = buf;                // cq points at buf[ ]
-	int *ip;
+	int total_bytes_read = 0;
+    	char *return_buf;
+	char read_buf[BLKSIZE];
+	int avaliable; int logical_block; int start_byte; int disk_block;
+	INODE *ip; OFT *ofp;
+	char *cp;
 
-	if (DEBUGGING) printf("fd: %d\n buf: %s\n nbytes: %d\n", fd, buf, nbytes);
+	if(DEBUGGING)printf("read: starting read\n");
+	if(DEBUGGING)printf("args: fd=%d buf=%x nbytes=%d\n", fd_num, buf, nbytes);
 
-	char readbuf[1024];
+	//establish pointers to OFT and INODE for this file
+	ofp = running->fd[fd_num];
+	ip = &ofp->mptr->INODE;
+	if(DEBUGGING)printf("read: ofp=%x ip=%x\n", ofp, ip);
 
-	int avil, lbk, startByte, blk, indirect_blk, indirect_off, remain;
-
-	MINODE *mip;
-	OFT *oftp;
-
-	oftp = running->fd[fd];
-	mip = oftp->mptr;
+	//establish pointer where we're writing read info to
+	return_buf = buf;
+	if(DEBUGGING)printf("read: return_buf=%x\n", return_buf);
 
 	//Calculates the available amount of bytes to be read
-	avil = mip->INODE.i_size - oftp->offset;
+	avaliable = ip->i_size - ofp->offset;
+	if(DEBUGGING)printf("read: avaliable=%d\n", avaliable);
 
-	while (nbytes && avil){
+	while (nbytes > 0 && avaliable > 0){
 
-		//Compute LOGICAL BLOCK number lbk and startByte in that block from offset;
-		lbk       = oftp->offset / BLKSIZE;
-		startByte = oftp->offset % BLKSIZE;
-		 
-		if (lbk < 12){                     // lbk is a direct block
-			if (DEBUGGING) printf("Direct...\n");
-			blk = mip->INODE.i_block[lbk]; // map LOGICAL lbk to PHYSICAL blk
+		//compute logical_block and start_byte
+		logical_block = ofp->offset / BLKSIZE;
+		start_byte = ofp->offset % BLKSIZE;
+		
+	        if(DEBUGGING)printf("read: logical=%d\n", logical_block);	
+
+		//logical block is direct block
+		if (logical_block < 12){
+			if(DEBUGGING)printf("read: direct block\n");
+			disk_block = ip->i_block[logical_block];
 		}
-		else if (lbk >= 12 && lbk < 256 + 12) { 
-			//  indirect blocks
-			if (DEBUGGING) printf("Indirect...\n");
-			get_block(mip->dev, mip->INODE.i_block[12], readbuf);
-			ip = (int *)readbuf + lbk - 12;
-			blk = *ip;
+		//logical block is single indirect block
+		else if (logical_block >= 12 && logical_block < 256 + 12){
+			char single_indirect_buf[BLKSIZE];
+			int *single_indirect_pointer;
+
+			if(DEBUGGING)printf("read: single indirect\n");
+			
+			//read in single indirect block to buf
+			get_block(ofp->mptr->dev, ip->i_block[12], single_indirect_buf);
+			single_indirect_pointer = (int *) single_indirect_buf + (logical_block - 12);
+			disk_block = *single_indirect_pointer;
 		}
+		//logical block is double indirect block
 		else{ 
-			//  double indirect blocks
-			if (DEBUGGING) printf("Double Indirect...\n");
-			get_block(mip->dev, mip->INODE.i_block[13], readbuf);
+			char double_indirect_buf[BLKSIZE];
+			char single_indirect_buf[BLKSIZE];
+			int *double_indirect_pointer;
+			int *single_indirect_pointer;
 
-			indirect_blk = (lbk - 256 - 12) / 256;
-			indirect_off = (lbk - 256 - 12) % 256;
+			if(DEBUGGING)printf("read: double indirect\n");
+	
+			//read in the double indirect block
+			//create a pointer to the proper offset in the double indirect block
+			get_block(ofp->mptr->dev, ip->i_block[13], double_indirect_buf);
+			double_indirect_pointer = (int*) double_indirect_buf;
+			double_indirect_pointer += ((logical_block - 256 - 12) / 256);
 
-			ip = (int *)readbuf + indirect_blk;
+			//use value from double indirect to get single indirect block
+			get_block(ofp->mptr->dev, *double_indirect_pointer, single_indirect_buf);
+			single_indirect_pointer = (int*) single_indirect_buf;
+			single_indirect_pointer += ((logical_block - 256 - 12) % 256);
 
-			get_block(mip->dev, *ip, readbuf);
-
-			ip = (int *)readbuf + indirect_off;
-			blk = *ip;
+			//use this value as the disk_block
+			disk_block = *single_indirect_pointer;
 		} 
-		/* get the data block into readbuf[BLKSIZE] */
-		get_block(mip->dev, blk, readbuf);
-		/* copy from startByte to buf[ ], at most remain bytes in this block */
-		char *cp = readbuf + startByte;   
-		remain = BLKSIZE - startByte;   // number of bytes remain in readbuf[]
-		while (remain > 0){
-			*cq++ = *cp++;             // copy byte from readbuf[] into buf[]
-			oftp->offset++;           // advance offset 
-			count++;                  // inc count as number of bytes read
-			avil--; nbytes--;  remain--;
-			if (nbytes <= 0 || avil <= 0) 
-			break;
+
+
+		//place disk_block into read_buf
+		get_block(ofp->mptr->dev, disk_block, read_buf);
+		
+		//make a pointer to the start of our read in this block
+		cp = read_buf + start_byte;
+
+		//calulate the data remaining to be read in this block
+		int remain = BLKSIZE - start_byte;
+
+		if((ip->i_size - ofp->offset) < remain)
+		{
+			remain = ip->i_size - ofp->offset;
 		}
+
+		//two cases:
+		//	remain > bytes_to_read 
+		//	remain < bytes_to_read
+		
+		if(remain < nbytes){
+			//OPTIMIZATION use memcopy to complete in one action
+			memcpy(return_buf, cp, remain);
+
+			nbytes -= remain;
+
+			return_buf += remain;
+
+			ofp->offset += remain;
+
+			total_bytes_read += remain;
+		}
+		else{
+
+			memcpy(return_buf, cp, nbytes);
+			return_buf += nbytes;
+			ofp->offset += nbytes;
+			total_bytes_read += nbytes;
+			nbytes = 0;
+		}
+		avaliable = ip->i_size - ofp->offset;
  
 		// if one data block is not enough, loop back to OUTER while for more ...
       	}
-	printf("myread: read %d char from file descriptor %d\n", count, fd);  
-	return count;   // count is the actual number of bytes read
+	printf("myread: read %d char from file descriptor %d\n", total_bytes_read, fd_num);  
+	return total_bytes_read;   // count is the actual number of bytes read
 }
 
+int read_file(char* fd_num_string, char* bytes_to_read_string){
+	int fd_num; int bytes_to_read;
+	OFT *open_file;
+	char buf[BLKSIZE];
 
+	//parse values to int
+	fd_num = atoi(fd_num_string);
+	bytes_to_read = atoi(bytes_to_read_string);
 
+	//create pointer to OFT struct
+	open_file = running->fd[fd_num];
 
-void my_cat(char *path)
-{
-	int n, i;
-	int fd = 0;
-
-	char mybuf[1024], dummy = 0;  // a null char at end of mybuf[ ]
-
-	//check for path
-	if(!path)
-	{
-		printf("No file provided!\n");
-		return;
+	//verify file is open in proper mode
+	if((open_file->mode == 1) || (open_file->mode == 3)){
+		printf("cannot read file, mode=%d\n", open_file->mode);
+		return -1;
 	}
 
-	//open with 0 for RD
-	fd = my_open(path, "R"); //open filename for READ
-
-	while((n = my_read(fd, mybuf, 1024)))
-	{	
-		//null terminate the buffer
-		mybuf[n] = '\0';
-		i = 0;
-		//print each char in the buffer, this is to handle \n
-		while(mybuf[i])
-		{
-			putchar(mybuf[i]);
-			if(mybuf[i] == '\n')
-				putchar('\r');
-			i++;
-		}
-	}
-	
-	printf("\n\r");
-	my_close(fd);
-
-	return;
+	return (my_read(fd_num, buf, bytes_to_read));
 }
-
-
 
 

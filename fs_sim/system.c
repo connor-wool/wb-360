@@ -22,6 +22,7 @@ The if none is provided, it defaults to "mydisk"
 #include "my_read.c"
 #include "my_write.c"
 #include "my_cp_mv.c"
+#include "my_cat.c"
 
 //globals
 /*
@@ -162,6 +163,7 @@ int main(int argc, char *argv[]){
 
 		printf("--> input command: [ls|cd|pwd|mkdir|rmdir|creat|touch|chmod|link|unlink|symlink|readlink|open|close|read|write|cat|cp|mv|refcount|pfd|debug|quit] ");
 
+		bzero(line, 127);
 		fgets(line, 128, stdin);
 		line[strlen(line) - 1] = 0;
 		if(DEBUGGING) printf("found input: `%s`\n", line);
@@ -237,9 +239,10 @@ int main(int argc, char *argv[]){
 		}
 		if(strcmp(cmd, "cat") == 0){
 			my_cat(pathname);
+			fflush(stdin);
 		}
 		if(strcmp(cmd, "write") == 0){
-			my_write(pathname, pathname2);
+			write_file(pathname, pathname2);
 		}
 		if(strcmp(cmd, "cp") == 0){
 			my_cp(pathname, pathname2);

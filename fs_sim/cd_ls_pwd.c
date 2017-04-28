@@ -128,9 +128,11 @@ int ls(char *pathname){
 	//turn that ino into an minode in core
         mip = iget(dev, ino);
 
+	if(DEBUGGING) printf("mode of file is:[%x]\n", mip->INODE.i_mode);
         //check if that inode points to a reg file or directory
         if(mip->INODE.i_mode & 0x8000){
                 if(DEBUGGING) printf("ls: found a regular file at the end of ls path\n");
+
         }
         else{
                 if(DEBUGGING) printf("ls: found a directory at end of ls path\n");
@@ -231,7 +233,12 @@ int pwd_helper(MINODE *mip, int child){
 }
 
 int pwd(MINODE *mip){
-        MINODE *papa;
+        if(mip->ino == 2){
+		printf("/\n");
+		return 0;
+	}
+	
+	MINODE *papa;
         DIR *dp; char *cp;
         char buf[BLKSIZE];
         int ino;
